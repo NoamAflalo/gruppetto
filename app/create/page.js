@@ -9,6 +9,9 @@ import Navigation from '../components/navigation';
 export default function CreateSession() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -33,6 +36,48 @@ export default function CreateSession() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      alert('Please describe what kind of session you want');
+      return;
+    }
+
+    setAiLoading(true);
+    
+    try {
+      const response = await fetch('/api/generate-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        alert('Error generating session');
+        return;
+      }
+
+      // Pre-fill form with AI suggestions
+      setFormData({
+        ...formData,
+        title: data.title,
+        description: data.description,
+        distance: data.distance,
+        intensity: data.intensity,
+      });
+
+      setShowAIModal(false);
+      setAiPrompt('');
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error generating session');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -104,6 +149,15 @@ export default function CreateSession() {
           <h1 className="text-3xl md:text-4xl font-black text-white mb-2">Create a Session</h1>
           <p className="text-gray-400 text-base md:text-lg">Organize your next training session</p>
         </div>
+
+        {/* AI Generator Button */}
+        <button
+          type="button"
+          onClick={() => setShowAIModal(true)}
+          className="mb-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-bold text-lg hover:from-purple-600 hover:to-pink-600 transition flex items-center justify-center gap-2"
+        >
+          ✨ Need inspiration? Ask Claude AI
+        </button>
 
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 space-y-4 md:space-y-6">
           {/* Title */}
@@ -295,6 +349,43 @@ export default function CreateSession() {
             </button>
           </div>
         </form>
+
+        {/* AI Modal */}
+        {showAIModal && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8 max-w-2xl w-full">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">✨ AI Session Generator</h2>
+              <p className="text-gray-400 mb-6">Describe what kind of session you want and Claude will create it for you!</p>
+              
+              <textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Example: 'Fun interval session for beginners in Battersea Park' or 'Challenging hill repeats for advanced runners'"
+                rows="4"
+                className="w-full p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-6"
+              />
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleAIGenerate}
+                  disabled={aiLoading}
+                  className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-bold hover:bg-purple-600 disabled:bg-gray-700 disabled:cursor-not-allowed transition"
+                >
+                  {aiLoading ? '✨ Generating...' : '✨ Generate Session'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAIModal(false);
+                    setAiPrompt('');
+                  }}
+                  className="px-6 py-3 bg-gray-800 text-white rounded-xl font-semibold hover:bg-gray-700 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
