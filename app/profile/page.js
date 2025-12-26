@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -21,9 +21,14 @@ export default function Profile() {
     location: '',
     profileImage: '',
     stravaLink: '',
+    goals: '',
+  });
+  const [stats, setStats] = useState({
+    sessionsJoined: 0,
+    sessionsHosted: 0,
+    memberSince: null,
   });
   const [saveMessage, setSaveMessage] = useState('');
-  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const router = useRouter();
 
@@ -43,6 +48,48 @@ export default function Profile() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // Fetch user stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+
+      try {
+        // Get all sessions
+        const sessionsRef = collection(db, 'sessions');
+        const sessionsSnapshot = await getDocs(sessionsRef);
+
+        let joined = 0;
+        let hosted = 0;
+
+        sessionsSnapshot.docs.forEach(docSnap => {
+          const session = docSnap.data();
+          if (session.host_user_id === user.uid) {
+            hosted++;
+          }
+          if (session.participants?.includes(user.uid)) {
+            joined++;
+          }
+        });
+
+        // Get member since date
+        const userDoc = await getDoc(doc(db, 'profiles', user.uid));
+        const memberSince = userDoc.exists() && userDoc.data().updatedAt
+          ? userDoc.data().updatedAt.toDate()
+          : user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date();
+
+        setStats({
+          sessionsJoined: joined,
+          sessionsHosted: hosted,
+          memberSince: memberSince,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
 
   const handleImageUpload = async (file) => {
     if (!file || !user) return;
@@ -71,26 +118,6 @@ export default function Profile() {
       console.error('Error uploading image:', error);
       alert('Error uploading image. Please try again.');
       setUploading(false);
-    }
-  };
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageUpload(e.dataTransfer.files[0]);
     }
   };
 
@@ -155,89 +182,121 @@ export default function Profile() {
           </div>
         )}
 
+        {/* Stats Section */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-6 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-4">📊 Your Stats</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-black rounded-xl p-4 border border-gray-800">
+              <div className="text-2xl md:text-3xl font-black text-orange-500 mb-1">
+                {stats.sessionsJoined}
+              </div>
+              <div className="text-xs md:text-sm text-gray-400">Sessions Joined</div>
+            </div>
+            
+            <div className="bg-black rounded-xl p-4 border border-gray-800">
+              <div className="text-2xl md:text-3xl font-black text-green-500 mb-1">
+                {stats.sessionsHosted}
+              </div>
+              <div className="text-xs md:text-sm text-gray-400">Sessions Hosted</div>
+            </div>
+            
+            <div className="bg-black rounded-xl p-4 border border-gray-800 col-span-2 md:col-span-1">
+              <div className="text-2xl md:text-3xl font-black text-blue-500 mb-1">
+                {stats.memberSince 
+                  ? new Date(stats.memberSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                  : '...'
+                }
+              </div>
+              <div className="text-xs md:text-sm text-gray-400">Member Since</div>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 space-y-4 md:space-y-6">
           {/* Profile Image Upload */}
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-3">Profile Photo</label>
             
-            {/* Current Image Preview */}
-            {formData.profileImage && (
-              <>
-                <div className="mb-4 flex justify-center">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            {/* Click on thumbnail to change */}
+            <div className="flex items-center gap-4">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative cursor-pointer group"
+              >
+                {formData.profileImage ? (
+                  <>
+                    <img 
+                      src={formData.profileImage} 
+                      alt="Profile" 
+                      className="rounded-full object-cover border-4 border-orange-500 group-hover:opacity-80 transition"
+                      style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition">
+                      <span className="text-white text-sm font-semibold">Change Photo</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-full bg-gray-800 flex flex-col items-center justify-center border-4 border-gray-700 group-hover:border-orange-500 transition"
+                       style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}>
+                    <div className="text-4xl mb-2">📸</div>
+                    <span className="text-xs text-gray-400">Add Photo</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <p className="text-sm text-gray-300 mb-2">
+                  {formData.profileImage ? 'Click on your photo to change it' : 'Click to add a profile photo'}
+                </p>
+                <p className="text-xs text-gray-500">PNG, JPG, GIF or WebP (max 5MB)</p>
+                {uploading && (
+                  <p className="text-sm text-orange-500 mt-2">⏳ Uploading...</p>
+                )}
+                {formData.profileImage && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowImageModal(true);
+                    }}
+                    className="text-sm text-orange-500 hover:text-orange-400 mt-2 inline-block underline"
+                  >
+                    View full size
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Image Modal */}
+            {showImageModal && (
+              <div 
+                className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+                onClick={() => setShowImageModal(false)}
+              >
+                <div className="relative max-w-4xl max-h-[90vh]">
+                  <button
+                    onClick={() => setShowImageModal(false)}
+                    className="absolute top-4 right-4 text-white text-4xl hover:text-orange-500 transition z-10"
+                  >
+                    ×
+                  </button>
                   <img 
                     src={formData.profileImage} 
                     alt="Profile" 
-                    className="rounded-full object-cover border-4 border-orange-500 cursor-pointer hover:opacity-80 transition"
-                    style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}
-                    onClick={() => setShowImageModal(true)}
+                    className="max-w-full max-h-[90vh] object-contain rounded-xl"
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
-
-                {/* Image Modal */}
-                {showImageModal && (
-                  <div 
-                    className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-                    onClick={() => setShowImageModal(false)}
-                  >
-                    <div className="relative max-w-4xl max-h-[90vh]">
-                      <button
-                        onClick={() => setShowImageModal(false)}
-                        className="absolute top-4 right-4 text-white text-4xl hover:text-orange-500 transition z-10"
-                      >
-                        ×
-                      </button>
-                      <img 
-                        src={formData.profileImage} 
-                        alt="Profile" 
-                        className="max-w-full max-h-[90vh] object-contain rounded-xl"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
+              </div>
             )}
-
-            {/* Drag & Drop Zone */}
-            <div
-              className={`border-2 border-dashed rounded-xl p-6 md:p-8 text-center transition ${
-                dragActive 
-                  ? 'border-orange-500 bg-orange-500/10' 
-                  : 'border-gray-700 bg-black hover:border-gray-600'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              
-              {uploading ? (
-                <div className="text-orange-500">
-                  <div className="text-3xl md:text-4xl mb-2">⏳</div>
-                  <p className="text-sm md:text-base">Uploading...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="text-3xl md:text-4xl mb-2">📸</div>
-                  <p className="text-gray-300 mb-2 text-sm md:text-base">Drag and drop your photo here, or</p>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 md:px-6 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition text-sm md:text-base"
-                  >
-                    Choose File
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF or WebP (max 5MB)</p>
-                </>
-              )}
-            </div>
           </div>
 
           {/* Display Name */}
@@ -267,6 +326,20 @@ export default function Profile() {
             />
           </div>
 
+          {/* Training Goals */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Training Goals</label>
+            <textarea
+              name="goals"
+              value={formData.goals}
+              onChange={handleChange}
+              placeholder="e.g., Training for London Marathon 2025, Sub-20 5K, First triathlon..."
+              rows="3"
+              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+            />
+            <p className="text-xs text-gray-500 mt-2">Let others know what you're working towards!</p>
+          </div>
+
           {/* Strava Link */}
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Strava Profile Link</label>
@@ -283,9 +356,12 @@ export default function Profile() {
                 href={formData.stravaLink} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs md:text-sm text-orange-500 hover:text-orange-400 mt-2 inline-block"
+                className="mt-3 w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
               >
-                View on Strava →
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                </svg>
+                View My Strava Profile
               </a>
             )}
           </div>
