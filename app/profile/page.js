@@ -22,6 +22,11 @@ export default function Profile() {
     profileImage: '',
     stravaLink: '',
     goals: '',
+    ratings: {
+      running: 0,
+      cycling: 0,
+      swimming: 0,
+    },
   });
   const [stats, setStats] = useState({
     sessionsJoined: 0,
@@ -39,7 +44,11 @@ export default function Profile() {
         
         const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
         if (profileDoc.exists()) {
-          setFormData(profileDoc.data());
+          const data = profileDoc.data();
+          setFormData({
+            ...data,
+            ratings: data.ratings || { running: 0, cycling: 0, swimming: 0 },
+          });
         }
       } else {
         router.push('/');
@@ -159,6 +168,16 @@ export default function Profile() {
       activities: formData.activities.includes(activity)
         ? formData.activities.filter(a => a !== activity)
         : [...formData.activities, activity],
+    });
+  };
+
+  const handleRatingChange = (activity, rating) => {
+    setFormData({
+      ...formData,
+      ratings: {
+        ...formData.ratings,
+        [activity]: rating,
+      },
     });
   };
 
@@ -408,6 +427,94 @@ export default function Profile() {
                   {activity}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Skill Ratings */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-3">Rate Your Skills</label>
+            <p className="text-xs text-gray-500 mb-4">
+              Help us recommend the right sessions for you. Rate yourself honestly from 1 (beginner) to 5 (expert).
+            </p>
+            
+            <div className="space-y-4">
+              {/* Running Rating */}
+              <div className="bg-black rounded-xl p-4 border border-gray-800">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm md:text-base text-white font-semibold">🏃 Running</span>
+                  <span className="text-orange-500 font-bold">{formData.ratings.running}/5</span>
+                </div>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => handleRatingChange('running', rating)}
+                      className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
+                        formData.ratings.running >= rating
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                    >
+                      {rating}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cycling Rating */}
+              <div className="bg-black rounded-xl p-4 border border-gray-800">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm md:text-base text-white font-semibold">🚴 Cycling</span>
+                  <span className="text-orange-500 font-bold">{formData.ratings.cycling}/5</span>
+                </div>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => handleRatingChange('cycling', rating)}
+                      className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
+                        formData.ratings.cycling >= rating
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                    >
+                      {rating}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Swimming Rating */}
+              <div className="bg-black rounded-xl p-4 border border-gray-800">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm md:text-base text-white font-semibold">🏊 Swimming</span>
+                  <span className="text-orange-500 font-bold">{formData.ratings.swimming}/5</span>
+                </div>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => handleRatingChange('swimming', rating)}
+                      className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
+                        formData.ratings.swimming >= rating
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                    >
+                      {rating}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <p className="text-xs md:text-sm text-blue-400">
+                💡 <strong>Tip:</strong> 1-2 = Beginner | 3 = Intermediate | 4-5 = Advanced
+              </p>
             </div>
           </div>
 

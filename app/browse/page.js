@@ -116,12 +116,31 @@ export default function Sessions() {
   };
 
   const filteredSessions = sessions.filter(session => {
+    // Filter out past sessions
+    const sessionDate = new Date(session.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    sessionDate.setHours(0, 0, 0, 0);
+    
+    if (sessionDate < today) return false;
+    
+    // Activity type filter
     if (filter !== 'all' && session.activity_type !== filter) return false;
+    
+    // Advanced filters
     if (advancedFilters.dateFrom && session.date < advancedFilters.dateFrom) return false;
     if (advancedFilters.dateTo && session.date > advancedFilters.dateTo) return false;
     if (advancedFilters.intensities.length > 0 && !advancedFilters.intensities.includes(session.intensity)) return false;
     if (advancedFilters.location && !session.location.toLowerCase().includes(advancedFilters.location.toLowerCase())) return false;
+    
     return true;
+  });
+
+  // Sort by date (soonest first)
+  const sortedSessions = [...filteredSessions].sort((a, b) => {
+    const dateA = new Date(a.date + ' ' + a.time);
+    const dateB = new Date(b.date + ' ' + b.time);
+    return dateA - dateB;
   });
 
   const getActivityEmoji = (type) => {
@@ -326,20 +345,20 @@ export default function Sessions() {
         {viewMode === 'map' && (
           <div className="mb-8 rounded-xl overflow-hidden border border-gray-800" style={{ height: '400px' }}>
             <SessionMap 
-              sessions={filteredSessions} 
+              sessions={sortedSessions} 
               onMarkerClick={handleMarkerClick}
             />
           </div>
         )}
 
         {/* Sessions List */}
-        {filteredSessions.length === 0 ? (
+        {sortedSessions.length === 0 ? (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
-            <p className="text-gray-400 text-base md:text-lg">No sessions match your filters. Try adjusting them!</p>
+            <p className="text-gray-400 text-base md:text-lg">No upcoming sessions match your filters. Try adjusting them!</p>
           </div>
         ) : (
           <div className="grid gap-4 md:gap-6">
-            {filteredSessions.map((session) => {
+            {sortedSessions.map((session) => {
               const isParticipant = session.participants?.includes(user.uid);
               const participantCount = session.participants?.length || 0;
               const isSelected = selectedSession?.id === session.id;
