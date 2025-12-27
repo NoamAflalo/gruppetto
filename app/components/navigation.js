@@ -7,6 +7,7 @@ import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/fire
 
 export default function Navigation({ user }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [userProfile, setUserProfile] = useState(null);
   const router = useRouter();
@@ -305,21 +306,52 @@ export default function Navigation({ user }) {
 
         {/* Mobile Menu Button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="mobile-nav">
+          {/* Hamburger Button */}
           <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              padding: '0.5rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              position: 'relative'
+            }}
+          >
+            <div style={{ width: '1.5rem', height: '2px', background: '#fff', transition: 'all 0.3s' }}></div>
+            <div style={{ width: '1.5rem', height: '2px', background: '#fff', transition: 'all 0.3s' }}></div>
+            <div style={{ width: '1.5rem', height: '2px', background: '#fff', transition: 'all 0.3s' }}></div>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '0',
+                right: '0',
+                background: '#ef4444',
+                color: '#fff',
+                borderRadius: '9999px',
+                padding: '0.125rem 0.375rem',
+                fontSize: '0.625rem',
+                fontWeight: 'bold'
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* User Avatar */}
+          <button
+            onClick={() => router.push('/profile')}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '0.5rem',
+              padding: '0.25rem',
               background: 'none',
               border: 'none',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
+              cursor: 'pointer'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#1f2937'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             {userProfile?.profileImage ? (
               <img 
@@ -348,93 +380,132 @@ export default function Navigation({ user }) {
                 👤
               </div>
             )}
-            <span style={{ color: '#fff', fontWeight: '600', fontSize: '0.875rem' }}>
-              {userProfile?.displayName || 'Menu'}
-            </span>
           </button>
+        </div>
 
-          {showUserMenu && (
-            <div style={{
-              position: 'absolute',
-              right: '1rem',
+        {/* Mobile Menu Overlay */}
+        {showMobileMenu && (
+          <div 
+            style={{
+              position: 'fixed',
               top: '4rem',
-              width: '12rem',
-              background: '#111827',
-              border: '1px solid #374151',
-              borderRadius: '0.5rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-              zIndex: 50
-            }}>
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.95)',
+              zIndex: 40,
+              padding: '1.5rem',
+              overflowY: 'auto'
+            }}
+            onClick={() => setShowMobileMenu(false)}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {navItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    router.push(item.path);
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '1rem',
+                    background: '#111827',
+                    border: '1px solid #374151',
+                    borderRadius: '0.5rem',
+                    color: '#fff',
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {item.label}
+                  {item.badge > 0 && (
+                    <span style={{
+                      background: '#ef4444',
+                      color: '#fff',
+                      borderRadius: '9999px',
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold'
+                    }}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+
+              <div style={{ borderTop: '1px solid #374151', margin: '1rem 0' }}></div>
+
               <button
                 onClick={() => {
-                  setShowUserMenu(false);
+                  setShowMobileMenu(false);
                   router.push('/profile');
                 }}
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  padding: '0.75rem 1rem',
+                  padding: '1rem',
+                  background: '#111827',
+                  border: '1px solid #374151',
+                  borderRadius: '0.5rem',
                   color: '#fff',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                onMouseLeave={(e) => e.target.style.background = 'transparent'}
               >
                 👤 My Profile
               </button>
+
               <button
                 onClick={() => {
-                  setShowUserMenu(false);
+                  setShowMobileMenu(false);
                   router.push('/settings');
                 }}
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  padding: '0.75rem 1rem',
+                  padding: '1rem',
+                  background: '#111827',
+                  border: '1px solid #374151',
+                  borderRadius: '0.5rem',
                   color: '#fff',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                onMouseLeave={(e) => e.target.style.background = 'transparent'}
               >
                 ⚙️ Settings
               </button>
-              <div style={{ borderTop: '1px solid #374151' }}></div>
+
               <button
-                onClick={handleSignOut}
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  handleSignOut();
+                }}
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  padding: '0.75rem 1rem',
+                  padding: '1rem',
+                  background: '#111827',
+                  border: '1px solid #374151',
+                  borderRadius: '0.5rem',
                   color: '#f87171',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                onMouseLeave={(e) => e.target.style.background = 'transparent'}
               >
                 🚪 Sign Out
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
