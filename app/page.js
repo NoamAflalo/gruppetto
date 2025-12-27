@@ -9,6 +9,7 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -26,15 +27,40 @@ export default function Home() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleGoogleSignIn = async () => {
+  useEffect(() => {
+  // Handle redirect result on mobile
+  const handleRedirectResult = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push('/browse');
+      const result = await getRedirectResult(auth);
+      if (result?.user) {
+        // User signed in successfully
+        console.log('Signed in via redirect:', result.user);
+      }
     } catch (error) {
-      console.error('Error signing in with Google:', error);
-      setError('Failed to sign in with Google');
+      console.error('Error handling redirect:', error);
+      alert('Error signing in. Please try again.');
     }
+  };
+  
+  handleRedirectResult();
+}, []);
+
+  const handleGoogleSignIn = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    
+    // Use redirect on mobile, popup on desktop
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      await signInWithRedirect(auth, provider);
+    } else {
+      await signInWithPopup(auth, provider);
+    }
+  } catch (error) {
+    console.error('Error signing in with Google:', error);
+    alert('Error signing in. Please try again.');
+  }
   };
 
   const handleEmailSignUp = async (e) => {
