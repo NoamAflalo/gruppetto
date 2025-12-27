@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export default function Notifications() {
   const [user, setUser] = useState(null);
@@ -92,6 +92,47 @@ export default function Notifications() {
 
     fetchAllNotifications();
   }, [user]);
+// Mark notifications as read when viewed
+useEffect(() => {
+  if (!user || notifications.length === 0) return;
+
+  const markAsRead = async () => {
+    try {
+      // Get all unique session IDs
+      const sessionIds = [...new Set(notifications.map(n => n.sessionId))];
+
+      for (const sessionId of sessionIds) {
+        const commentsRef = collection(db, 'sessions', sessionId, 'comments');
+        const commentsSnapshot = await getDocs(commentsRef);
+
+        for (const commentDoc of commentsSnapshot.docs) {
+          const comment = commentDoc.data();
+          
+          // Skip if already read by user or is user's own comment
+          if (comment.userId === user.uid) continue;
+          if (comment.readBy && comment.readBy.includes(user.uid)) continue;
+
+          // Mark as read
+          const commentRef = doc(db, 'sessions', sessionId, 'comments', commentDoc.id);
+          await updateDoc(commentRef, {
+            readBy: arrayUnion(user.uid)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
+
+  // Wait 1 second before marking as read (so user sees the notifications first)
+  const timer = setTimeout(() => {
+    markAsRead();
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [user, notifications]);
+
+  
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
