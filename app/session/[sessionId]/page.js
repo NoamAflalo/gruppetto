@@ -1,20 +1,19 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, collection, addDoc, onSnapshot, orderBy, query, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../components/navigation';
+import SessionMap from '../../components/map';
 
 export default function SessionDetail() {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [hostProfile, setHostProfile] = useState(null);
-  const [participants, setParticipants] = useState([]);
-  const [showChat, setShowChat] = useState(false);
+  const [profiles, setProfiles] = useState({});
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const params = useParams();
   const sessionId = params.sessionId;
@@ -35,50 +34,129 @@ export default function SessionDetail() {
     if (!sessionId) return;
 
     const sessionRef = doc(db, 'sessions', sessionId);
-    const unsubscribe = onSnapshot(sessionRef, async (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const sessionData = { id: docSnapshot.id, ...docSnapshot.data() };
+    const unsubscribe = onSnapshot(sessionRef, async (docSnap) => {
+      if (docSnap.exists()) {
+        const sessionData = { id: docSnap.id, ...docSnap.data() };
         setSession(sessionData);
 
-        const hostDoc = await getDoc(doc(db, 'profiles', sessionData.host_user_id));
-        if (hostDoc.exists()) {
-          setHostProfile(hostDoc.data());
+        const userIds = new Set();
+        if (sessionData.host_user_id) userIds.add(sessionData.host_user_id);
+        if (sessionData.participants) {
+          sessionData.participants.forEach(id => userIds.add(id));
         }
 
-        if (sessionData.participants) {
-          const participantProfiles = [];
-          for (const participantId of sessionData.participants) {
-            const profileDoc = await getDoc(doc(db, 'profiles', participantId));
-            if (profileDoc.exists()) {
-              participantProfiles.push({ id: participantId, ...profileDoc.data() });
-            }
+        const profilesData = {};
+        for (const userId of userIds) {
+          const profileDoc = await getDoc(doc(db, 'profiles', userId));
+          if (profileDoc.exists()) {
+            profilesData[userId] = profileDoc.data();
           }
-          setParticipants(participantProfiles);
         }
+        setProfiles(profilesData);
+      } else {
+        router.push('/browse');
       }
     });
 
     return () => unsubscribe();
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   useEffect(() => {
     if (!sessionId) return;
 
-    const commentsQuery = query(
-      collection(db, 'sessions', sessionId, 'comments'),
-      orderBy('created_at', 'asc')
-    );
+    const commentsRef = collection(db, 'sessions', sessionId, 'comments');
+    const unsubscribe = onSnapshot(commentsRef, async (snapshot) => {
+      const commentsData = [];
+      
+      for (const docSnap of snapshot.docs) {
+        const comment = docSnap.data();
+        
+        // Skip comments without userId
+        if (!comment.userId) {
+          console.warn('Comment without userId:', docSnap.id);
+          continue;
+        }
+        
+        try {
+          const userProfile = await getDoc(doc(db, 'profiles', comment.userId));
+          
+          commentsData.push({
+            id: docSnap.id,
+            ...comment,
+            userProfile: userProfile.exists() ? userProfile.data() : null,
+          });
+        } catch (error) {
+          console.error('Error fetching user profile for comment:', error);
+          // Add comment without profile
+          commentsData.push({
+            id: docSnap.id,
+            ...comment,
+            userProfile: null,
+          });
+        }
+      }
 
-    const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
-      const commentsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      commentsData.sort((a, b) => {
+        if (!a.timestamp || !b.timestamp) return 0;
+        return a.timestamp.toMillis() - b.timestamp.toMillis();
+      });
+
       setComments(commentsData);
     });
 
     return () => unsubscribe();
   }, [sessionId]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    try {
+      const commentsRef = collection(db, 'sessions', sessionId, 'comments');
+      await addDoc(commentsRef, {
+        userId: user.uid,
+        message: newMessage,
+        timestamp: serverTimestamp(),
+        readBy: [user.uid], // Mark as read by sender immediately
+      });
+
+      setNewMessage('');
+
+      // Only send email to OTHER participants (not yourself)
+      const otherParticipants = session.participants?.filter(id => id !== user.uid) || [];
+      
+      if (otherParticipants.length > 0) {
+        const currentProfile = profiles[user.uid] || {};
+        
+        // Get emails of other participants
+        for (const participantId of otherParticipants) {
+          const participantProfile = profiles[participantId];
+          if (participantProfile?.email) {
+            try {
+              await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'new_message',
+                  to: participantProfile.email,
+                  data: {
+                    sessionTitle: session.title,
+                    senderName: currentProfile.displayName || user.email,
+                    message: newMessage,
+                    sessionId: sessionId,
+                  },
+                }),
+              });
+            } catch (emailError) {
+              console.error('Email error:', emailError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
 
   const handleJoinSession = async () => {
     if (!user || !session) return;
@@ -96,6 +174,8 @@ export default function SessionDetail() {
           participants: arrayUnion(user.uid)
         });
 
+        const currentProfile = profiles[user.uid] || {};
+
         try {
           await fetch('/api/send-email', {
             method: 'POST',
@@ -105,7 +185,7 @@ export default function SessionDetail() {
               to: session.host_email,
               data: {
                 sessionTitle: session.title,
-                participantName: user.email,
+                participantName: currentProfile.displayName || user.email,
                 date: session.date,
                 time: session.time,
                 location: session.location,
@@ -122,34 +202,22 @@ export default function SessionDetail() {
     }
   };
 
-  const handleSendComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim() || !user) return;
-
-    try {
-      await addDoc(collection(db, 'sessions', sessionId, 'comments'), {
-        text: newComment,
-        user_id: user.uid,
-        user_email: user.email,
-        created_at: new Date(),
-      });
-
-      setNewComment('');
-    } catch (error) {
-      console.error('Error sending comment:', error);
-    }
-  };
-
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
     const now = new Date();
-    const diff = now - date;
+    const messageTime = timestamp.toDate();
+    const diffMs = now - messageTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString();
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return messageTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   };
 
   const getActivityEmoji = (type) => {
@@ -176,212 +244,226 @@ export default function SessionDetail() {
 
   const isParticipant = session.participants?.includes(user.uid);
   const isHost = session.host_user_id === user.uid;
-  const canAccessChat = isParticipant || isHost;
-  const unreadCount = comments.filter(c => c.user_id !== user.uid).length;
+  const participantCount = session.participants?.length || 0;
+  const isFull = session.max_participants && participantCount >= session.max_participants;
+  const hostProfile = profiles[session.host_user_id];
 
   return (
     <div className="min-h-screen bg-black">
       <Navigation user={user} />
+      
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/browse')}
+          className="text-gray-400 hover:text-orange-500 transition mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base"
+        >
+          ← Back to Sessions
+        </button>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-12">
-        {/* Session Details */}
+        {/* Session Header */}
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 mb-6 md:mb-8">
-          <div className="flex items-start gap-3 md:gap-4 mb-4 md:mb-6 flex-wrap">
-            <span className="text-4xl md:text-5xl">{getActivityEmoji(session.activity_type)}</span>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl md:text-4xl font-black text-white mb-2 break-words">{session.title}</h1>
-              <span className={`inline-block px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
-                {session.intensity}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-gray-300 mb-6 md:mb-8 text-sm md:text-lg leading-relaxed">{session.description}</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
-            <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
-              <p className="text-gray-500 text-xs md:text-sm mb-1">📅 Date</p>
-              <p className="text-white font-semibold text-sm md:text-base">{session.date}</p>
-            </div>
-            <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
-              <p className="text-gray-500 text-xs md:text-sm mb-1">🕐 Time</p>
-              <p className="text-white font-semibold text-sm md:text-base">{session.time}</p>
-            </div>
-            <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800 sm:col-span-2">
-              <p className="text-gray-500 text-xs md:text-sm mb-1">📍 Location</p>
-              <p className="text-white font-semibold text-sm md:text-base">{session.location}</p>
-            </div>
-            {session.distance && (
-              <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
-                <p className="text-gray-500 text-xs md:text-sm mb-1">📏 Distance</p>
-                <p className="text-white font-semibold text-sm md:text-base">{session.distance}</p>
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
+                <span className="text-4xl md:text-5xl">{getActivityEmoji(session.activity_type)}</span>
+                <h1 className="text-2xl md:text-4xl font-black text-white">{session.title}</h1>
+                <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
+                  {session.intensity}
+                </span>
               </div>
-            )}
-            {session.max_participants && (
-              <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
-                <p className="text-gray-500 text-xs md:text-sm mb-1">👥 Max Participants</p>
-                <p className="text-white font-semibold text-sm md:text-base">{session.max_participants}</p>
-              </div>
-            )}
-          </div>
+              
+              <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-lg leading-relaxed">{session.description}</p>
 
-          {/* Host */}
-          <div 
-            className="bg-black rounded-xl p-3 md:p-4 border border-gray-800 mb-6 md:mb-8 flex items-center gap-3 md:gap-4 cursor-pointer hover:border-orange-500/50 transition"
-            onClick={() => router.push(`/profile/${session.host_user_id}`)}
-          >
-            {hostProfile?.profileImage ? (
-              <img 
-                src={hostProfile.profileImage} 
-                alt={hostProfile.displayName}
-                className="rounded-full object-cover border-2 border-orange-500"
-                style={{ width: '3rem', height: '3rem', minWidth: '3rem', minHeight: '3rem' }}
-              />
-            ) : (
-              <div className="rounded-full bg-gray-800 flex items-center justify-center text-xl border-2 border-orange-500"
-                   style={{ width: '3rem', height: '3rem', minWidth: '3rem', minHeight: '3rem' }}>
-                👤
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm text-gray-500 mb-1">Hosted by</p>
-              <p className="text-sm md:text-base font-bold text-white truncate">{hostProfile?.displayName || session.host_email}</p>
-              {hostProfile?.fitnessLevel && (
-                <p className="text-xs text-gray-500 capitalize">{hostProfile.fitnessLevel}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Join/Leave Button */}
-          <button
-            onClick={handleJoinSession}
-            disabled={!isParticipant && session.max_participants && session.participants?.length >= session.max_participants}
-            className={`w-full py-3 md:py-4 rounded-xl font-bold text-base md:text-lg transition ${
-              isParticipant
-                ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed'
-            }`}
-          >
-            {isParticipant ? 'Leave Session' : 'Join Session'}
-          </button>
-        </div>
-
-        {/* Participants */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">
-            Participants ({participants.length}{session.max_participants ? `/${session.max_participants}` : ''})
-          </h2>
-          
-          {participants.length === 0 ? (
-            <p className="text-gray-400 text-center py-8 text-sm md:text-base">No participants yet. Be the first to join!</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-              {participants.map((participant) => (
-                <div
-                  key={participant.id}
-                  className="bg-black rounded-xl p-3 md:p-4 border border-gray-800 flex items-center gap-3 cursor-pointer hover:border-orange-500/50 transition"
-                  onClick={() => router.push(`/profile/${participant.id}`)}
-                >
-                  {participant.profileImage ? (
-                    <img 
-                      src={participant.profileImage} 
-                      alt={participant.displayName}
-                      className="rounded-full object-cover border-2 border-gray-700"
-                      style={{ width: '2.5rem', height: '2.5rem', minWidth: '2.5rem', minHeight: '2.5rem' }}
-                    />
-                  ) : (
-                    <div className="rounded-full bg-gray-800 flex items-center justify-center text-base border-2 border-gray-700"
-                         style={{ width: '2.5rem', height: '2.5rem', minWidth: '2.5rem', minHeight: '2.5rem' }}>
-                      👤
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm md:text-base font-semibold text-white truncate">
-                      {participant.displayName || participant.email}
-                      {participant.id === session.host_user_id && (
-                        <span className="ml-2 text-xs px-2 py-0.5 bg-orange-500/20 text-orange-500 rounded">Host</span>
-                      )}
-                    </p>
-                    {participant.fitnessLevel && (
-                      <p className="text-xs text-gray-500 capitalize">{participant.fitnessLevel}</p>
-                    )}
-                  </div>
+              {/* Session Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-6">
+                <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
+                  <p className="text-gray-500 text-xs md:text-sm mb-1">Date</p>
+                  <p className="text-white font-semibold text-sm md:text-base">📅 {session.date}</p>
                 </div>
-              ))}
+                <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
+                  <p className="text-gray-500 text-xs md:text-sm mb-1">Time</p>
+                  <p className="text-white font-semibold text-sm md:text-base">🕐 {session.time}</p>
+                </div>
+                <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800 sm:col-span-2">
+                  <p className="text-gray-500 text-xs md:text-sm mb-1">Location</p>
+                  <p className="text-white font-semibold text-sm md:text-base">📍 {session.location}</p>
+                </div>
+                {session.distance && (
+                  <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
+                    <p className="text-gray-500 text-xs md:text-sm mb-1">Distance</p>
+                    <p className="text-white font-semibold text-sm md:text-base">📏 {session.distance}</p>
+                  </div>
+                )}
+                {session.max_participants && (
+                  <div className="bg-black rounded-xl p-3 md:p-4 border border-gray-800">
+                    <p className="text-gray-500 text-xs md:text-sm mb-1">Max Participants</p>
+                    <p className="text-white font-semibold text-sm md:text-base">👥 {session.max_participants}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Host Info */}
+              <div 
+                className="bg-black rounded-xl p-3 md:p-4 border border-gray-800 hover:border-orange-500/50 transition cursor-pointer inline-flex items-center gap-3"
+                onClick={() => router.push(`/profile/${session.host_user_id}`)}
+              >
+                {hostProfile?.profileImage ? (
+                  <img 
+                    src={hostProfile.profileImage} 
+                    alt={hostProfile.displayName}
+                    className="rounded-full object-cover border-2 border-orange-500"
+                    style={{ width: '3rem', height: '3rem', minWidth: '3rem', minHeight: '3rem' }}
+                  />
+                ) : (
+                  <div className="rounded-full bg-gray-800 flex items-center justify-center text-xl border-2 border-orange-500"
+                       style={{ width: '3rem', height: '3rem', minWidth: '3rem', minHeight: '3rem' }}>
+                    👤
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs md:text-sm text-gray-500">Hosted by</p>
+                  <p className="text-white font-semibold text-sm md:text-base">{hostProfile?.displayName || session.host_email}</p>
+                  {hostProfile?.fitnessLevel && (
+                    <p className="text-xs text-gray-500 capitalize">{hostProfile.fitnessLevel}</p>
+                  )}
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Join/Leave Button */}
+            <button
+              onClick={handleJoinSession}
+              disabled={!isParticipant && isFull}
+              className={`w-full md:w-auto md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg transition ${
+                isParticipant
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : isFull
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-500 text-white hover:bg-green-600'
+              }`}
+            >
+              {isParticipant ? 'Leave Session' : isFull ? 'Session Full' : 'Join Session'}
+            </button>
+          </div>
         </div>
 
-        {/* Chat Section */}
-        {canAccessChat && (
-          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8">
-            <div className="flex justify-between items-center mb-4 md:mb-6">
-              <h2 className="text-xl md:text-2xl font-bold text-white">Session Chat</h2>
-              <button
-                onClick={() => setShowChat(!showChat)}
-                className="px-4 md:px-6 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition text-sm md:text-base"
-              >
-                {showChat ? 'Close Chat' : `Open Chat ${unreadCount > 0 ? `(${unreadCount})` : ''}`}
-              </button>
-            </div>
+        {/* Map */}
+        <div className="mb-6 md:mb-8 rounded-2xl overflow-hidden border border-gray-800" style={{ height: '400px' }}>
+          <SessionMap sessions={[session]} />
+        </div>
 
-            {showChat && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+          {/* Participants */}
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">
+              👥 Participants ({participantCount})
+            </h2>
+
+            {participantCount === 0 ? (
+              <p className="text-gray-500 text-center py-8 text-sm md:text-base">No participants yet. Be the first to join!</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                {session.participants?.map((participantId) => {
+                  const profile = profiles[participantId];
+                  return (
+                    <div
+                      key={participantId}
+                      onClick={() => router.push(`/profile/${participantId}`)}
+                      className="bg-black rounded-xl p-3 md:p-4 border border-gray-800 hover:border-orange-500/50 transition cursor-pointer flex items-center gap-3"
+                    >
+                      {profile?.profileImage ? (
+                        <img 
+                          src={profile.profileImage} 
+                          alt={profile.displayName}
+                          className="rounded-full object-cover border-2 border-gray-700"
+                          style={{ width: '2.5rem', height: '2.5rem', minWidth: '2.5rem', minHeight: '2.5rem' }}
+                        />
+                      ) : (
+                        <div className="rounded-full bg-gray-800 flex items-center justify-center text-base border-2 border-gray-700"
+                             style={{ width: '2.5rem', height: '2.5rem', minWidth: '2.5rem', minHeight: '2.5rem' }}>
+                          👤
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-sm md:text-base truncate">
+                          {profile?.displayName || 'User'}
+                          {participantId === session.host_user_id && (
+                            <span className="ml-2 text-xs text-orange-500">HOST</span>
+                          )}
+                        </p>
+                        {profile?.fitnessLevel && (
+                          <p className="text-xs text-gray-500 capitalize">{profile.fitnessLevel}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Chat */}
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">💬 Chat</h2>
+
+            {!isParticipant ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4 text-sm md:text-base">Join the session to participate in the chat</p>
+              </div>
+            ) : (
               <>
                 {/* Messages */}
-                <div className="bg-black rounded-xl border border-gray-800 p-3 md:p-4 mb-4 max-h-96 overflow-y-auto">
+                <div className="space-y-3 md:space-y-4 mb-4 md:mb-6 max-h-[400px] overflow-y-auto">
                   {comments.length === 0 ? (
                     <p className="text-gray-500 text-center py-8 text-sm md:text-base">No messages yet. Start the conversation!</p>
                   ) : (
-                    <div className="space-y-3 md:space-y-4">
-                      {comments.map((comment) => {
-                        const participantProfile = participants.find(p => p.id === comment.user_id);
-                        return (
-                          <div key={comment.id} className="flex gap-2 md:gap-3">
-                            {participantProfile?.profileImage ? (
-                              <img 
-                                src={participantProfile.profileImage} 
-                                alt={participantProfile.displayName}
-                                className="rounded-full object-cover border-2 border-gray-700 flex-shrink-0"
-                                style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
-                              />
-                            ) : (
-                              <div className="rounded-full bg-gray-800 flex items-center justify-center text-sm border-2 border-gray-700 flex-shrink-0"
-                                   style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
-                                👤
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="text-xs md:text-sm font-semibold text-white">
-                                  {participantProfile?.displayName || comment.user_email}
-                                </span>
-                                {comment.user_id === session.host_user_id && (
-                                  <span className="text-xs px-2 py-0.5 bg-orange-500/20 text-orange-500 rounded">Host</span>
-                                )}
-                                <span className="text-xs text-gray-500">{formatTime(comment.created_at)}</span>
-                              </div>
-                              <p className="text-sm md:text-base text-gray-300 break-words">{comment.text}</p>
-                            </div>
+                    comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-2 md:gap-3">
+                        {comment.userProfile?.profileImage ? (
+                          <img 
+                            src={comment.userProfile.profileImage} 
+                            alt={comment.userProfile.displayName}
+                            className="rounded-full object-cover border-2 border-gray-700 flex-shrink-0"
+                            style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
+                          />
+                        ) : (
+                          <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs border-2 border-gray-700 flex-shrink-0"
+                               style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
+                            👤
                           </div>
-                        );
-                      })}
-                    </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-white font-semibold text-xs md:text-sm">
+                              {comment.userProfile?.displayName || 'User'}
+                              {comment.userId === session.host_user_id && (
+                                <span className="ml-2 text-xs text-orange-500">HOST</span>
+                              )}
+                            </p>
+                            <span className="text-xs text-gray-500">
+                              {formatTime(comment.timestamp)}
+                            </span>
+                          </div>
+                          <p className="text-gray-300 text-sm md:text-base break-words">{comment.message}</p>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
 
                 {/* Message Input */}
-                <form onSubmit={handleSendComment} className="flex gap-2 md:gap-3">
+                <form onSubmit={handleSendMessage} className="flex gap-2 md:gap-3">
                   <input
                     type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
                     className="flex-1 p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
                   />
                   <button
                     type="submit"
-                    disabled={!newComment.trim()}
-                    className="px-4 md:px-6 py-3 md:py-4 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 disabled:bg-gray-700 disabled:cursor-not-allowed transition text-sm md:text-base whitespace-nowrap"
+                    className="px-4 md:px-6 py-3 md:py-4 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition text-sm md:text-base"
                   >
                     Send
                   </button>
@@ -389,13 +471,7 @@ export default function SessionDetail() {
               </>
             )}
           </div>
-        )}
-
-        {!canAccessChat && (
-          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 md:p-12 text-center">
-            <p className="text-gray-400 text-sm md:text-lg">Join the session to access the group chat</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

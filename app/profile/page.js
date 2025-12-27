@@ -205,11 +205,17 @@ export default function Profile() {
         updatedAt: new Date(),
       });
       
-      setSaveMessage('Profile saved successfully!');
-      setTimeout(() => setSaveMessage(''), 3000);
+      setSaveMessage('✅ Profile saved successfully!');
+      
+      // Auto-scroll to top to see message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Hide message after 5 seconds
+      setTimeout(() => setSaveMessage(''), 5000);
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Error saving profile. Please try again.');
+      setSaveMessage('❌ Error saving profile. Please try again.');
+      setTimeout(() => setSaveMessage(''), 5000);
     }
   };
 
@@ -278,7 +284,11 @@ export default function Profile() {
         </div>
 
         {saveMessage && (
-          <div className="mb-4 md:mb-6 bg-green-500/10 border border-green-500/30 text-green-400 p-3 md:p-4 rounded-xl text-sm md:text-base">
+          <div className={`mb-6 p-4 rounded-xl text-center font-semibold text-base md:text-lg animate-pulse ${
+            saveMessage.includes('✅') 
+              ? 'bg-green-500/20 border-2 border-green-500 text-green-400' 
+              : 'bg-red-500/20 border-2 border-red-500 text-red-400'
+          }`}>
             {saveMessage}
           </div>
         )}

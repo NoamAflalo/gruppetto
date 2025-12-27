@@ -17,6 +17,7 @@ export default function Sessions() {
   const [viewMode, setViewMode] = useState('list');
   const [selectedSession, setSelectedSession] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -135,25 +136,24 @@ export default function Sessions() {
   };
 
   const filteredSessions = sessions.filter(session => {
-    // Filter out past sessions
-    const sessionDate = new Date(session.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    sessionDate.setHours(0, 0, 0, 0);
-    
-    if (sessionDate < today) return false;
-    
-    // Activity type filter
-    if (filter !== 'all' && session.activity_type !== filter) return false;
-    
-    // Advanced filters
-    if (advancedFilters.dateFrom && session.date < advancedFilters.dateFrom) return false;
-    if (advancedFilters.dateTo && session.date > advancedFilters.dateTo) return false;
-    if (advancedFilters.intensities.length > 0 && !advancedFilters.intensities.includes(session.intensity)) return false;
-    if (advancedFilters.location && !session.location.toLowerCase().includes(advancedFilters.location.toLowerCase())) return false;
-    
-    return true;
-  });
+  // Filter out past sessions
+  const sessionDateTime = new Date(`${session.date}T${session.time}`);
+  const now = new Date();
+  
+  // Session is in the past if date+time is before now
+  if (sessionDateTime < now) return false;
+  
+  // Activity type filter
+  if (filter !== 'all' && session.activity_type !== filter) return false;
+  
+  // Advanced filters
+  if (advancedFilters.dateFrom && session.date < advancedFilters.dateFrom) return false;
+  if (advancedFilters.dateTo && session.date > advancedFilters.dateTo) return false;
+  if (advancedFilters.intensities.length > 0 && !advancedFilters.intensities.includes(session.intensity)) return false;
+  if (advancedFilters.location && !session.location.toLowerCase().includes(advancedFilters.location.toLowerCase())) return false;
+  
+  return true;
+});
 
   // Sort by date (soonest first)
   const sortedSessions = [...filteredSessions].sort((a, b) => {
@@ -435,77 +435,107 @@ export default function Sessions() {
           </div>
         )}
 
-        {/* Recommended Sessions */}
+        {/* Recommended Sessions Toggle */}
         {recommendedSessions.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-2xl md:text-3xl font-black text-white">✨ Recommended For You</h2>
-              <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-semibold">
-                Based on your profile
-              </span>
-            </div>
-            
-            <div className="grid gap-4 mb-8">
-              {recommendedSessions.map((session) => {
-                const isParticipant = session.participants?.includes(user.uid);
-                const participantCount = session.participants?.length || 0;
-                const hostProfile = profiles[session.host_user_id];
-                
-                return (
-                  <div 
-                    key={session.id}
-                    className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 rounded-xl border-2 border-orange-500/50 p-4 md:p-8 hover:border-orange-500 transition cursor-pointer"
-                    onClick={() => router.push(`/session/${session.id}`)}
-                  >
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
-                          <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
-                          <h3 className="text-xl md:text-2xl font-bold text-white">{session.title}</h3>
-                          <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
-                            {session.intensity}
-                          </span>
-                          <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
-                            MATCH
-                          </span>
+          <div className="mb-6 md:mb-8">
+            <button
+              onClick={() => setShowRecommendations(!showRecommendations)}
+              className="w-full bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-2 border-orange-500/50 rounded-xl p-4 hover:border-orange-500 transition flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">✨</span>
+                <div className="text-left">
+                  <h3 className="text-lg md:text-xl font-bold text-white">
+                    Recommended For You
+                  </h3>
+                  <p className="text-xs md:text-sm text-gray-400">
+                    {recommendedSessions.length} session{recommendedSessions.length !== 1 ? 's' : ''} match your profile
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
+                  {recommendedSessions.length}
+                </span>
+                <svg 
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 20 20" 
+                  fill="currentColor" 
+                  className={`text-orange-500 transition-transform ${showRecommendations ? 'rotate-180' : ''}`}
+                >
+                  <path d="M10 12L5 7h10z"/>
+                </svg>
+              </div>
+            </button>
+
+            {/* Recommended Sessions List (Collapsible) */}
+            {showRecommendations && (
+              <div className="mt-4 space-y-4">
+                {recommendedSessions.map((session) => {
+                  const isParticipant = session.participants?.includes(user.uid);
+                  const participantCount = session.participants?.length || 0;
+                  const hostProfile = profiles[session.host_user_id];
+                  
+                  return (
+                    <div 
+                      key={session.id}
+                      className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 rounded-xl border-2 border-orange-500/50 p-4 md:p-6 hover:border-orange-500 transition cursor-pointer"
+                      onClick={() => router.push(`/session/${session.id}`)}
+                    >
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 md:gap-3 mb-3 flex-wrap">
+                            <span className="text-2xl md:text-3xl">{getActivityEmoji(session.activity_type)}</span>
+                            <h3 className="text-lg md:text-xl font-bold text-white">{session.title}</h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getIntensityColor(session.intensity)}`}>
+                              {session.intensity}
+                            </span>
+                            <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
+                              MATCH
+                            </span>
+                          </div>
+                          
+                          <p className="text-gray-300 mb-3 text-sm line-clamp-2">{session.description}</p>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-300 mb-3">
+                            <div>📅 {session.date}</div>
+                            <div>🕐 {session.time}</div>
+                            <div className="sm:col-span-2">📍 {session.location}</div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span>👥 {participantCount} joined</span>
+                          </div>
                         </div>
                         
-                        <p className="text-gray-300 mb-3 text-sm md:text-base line-clamp-2">{session.description}</p>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-300 mb-3">
-                          <div>📅 {session.date}</div>
-                          <div>🕐 {session.time}</div>
-                          <div className="sm:col-span-2">📍 {session.location}</div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                          <span>👥 {participantCount} joined</span>
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleJoinSession(session.id, session.participants || []);
+                          }}
+                          disabled={!isParticipant && session.max_participants && participantCount >= session.max_participants}
+                          className={`w-full md:w-auto md:ml-6 px-6 py-3 rounded-lg font-semibold transition ${
+                            isParticipant
+                              ? 'bg-red-500 text-white hover:bg-red-600'
+                              : 'bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed'
+                          }`}
+                        >
+                          {isParticipant ? 'Leave' : 'Join'}
+                        </button>
                       </div>
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleJoinSession(session.id, session.participants || []);
-                        }}
-                        disabled={!isParticipant && session.max_participants && participantCount >= session.max_participants}
-                        className={`w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition ${
-                          isParticipant
-                            ? 'bg-red-500 text-white hover:bg-red-600'
-                            : 'bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed'
-                        }`}
-                      >
-                        {isParticipant ? 'Leave' : 'Join'}
-                      </button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div className="border-t border-gray-800 pt-8">
-              <h2 className="text-xl md:text-2xl font-bold text-white mb-4">All Sessions</h2>
-            </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Divider */}
+            {showRecommendations && (
+              <div className="border-t border-gray-800 pt-6 mt-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white mb-4">All Sessions</h2>
+              </div>
+            )}
           </div>
         )}
 

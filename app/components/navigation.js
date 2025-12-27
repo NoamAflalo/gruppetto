@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
@@ -10,6 +10,7 @@ export default function Navigation({ user }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userProfile, setUserProfile] = useState(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -31,6 +32,12 @@ export default function Navigation({ user }) {
   useEffect(() => {
     if (!user) return;
 
+    // Reset unread count when on notifications page
+    if (pathname === '/notifications') {
+      setUnreadCount(0);
+      return;
+    }
+
     const q = query(
       collection(db, 'sessions'),
       where('participants', 'array-contains', user.uid)
@@ -45,25 +52,26 @@ export default function Navigation({ user }) {
         onSnapshot(commentsRef, (commentsSnapshot) => {
           const unreadComments = commentsSnapshot.docs.filter(doc => {
             const comment = doc.data();
-            return comment.userId !== user.uid && 
+            return comment.userId && comment.userId !== user.uid && 
                    (!comment.readBy || !comment.readBy.includes(user.uid));
           });
           
-          totalUnread = unreadComments.length;
-          setUnreadCount(totalUnread);
+          totalUnread += unreadComments.length;
+          
+          // Don't show count on notifications page
+          if (pathname === '/notifications') {
+            setUnreadCount(0);
+          } else {
+            setUnreadCount(totalUnread);
+          }
         });
       });
     });
 
-    const intervalId = setInterval(() => {
-      
-    }, 10000);
-
     return () => {
       unsubscribe();
-      clearInterval(intervalId);
     };
-  }, [user]);
+  }, [user, pathname]);
 
   const handleSignOut = async () => {
     try {
