@@ -100,7 +100,9 @@ export default function UserProfile() {
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
           <h1 className="text-3xl md:text-4xl font-black text-white mb-2">{profile.displayName || 'User Profile'}</h1>
-          <p className="text-gray-400 text-base md:text-lg">{profile.email}</p>
+          {profile.location && (
+            <p className="text-gray-400 text-base md:text-lg">📍 {profile.location}</p>
+          )}
         </div>
 
         {/* Stats Section */}

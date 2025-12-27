@@ -11,6 +11,7 @@ export default function Sessions() {
   const [user, setUser] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [profiles, setProfiles] = useState({});
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [viewMode, setViewMode] = useState('list');
@@ -35,6 +36,24 @@ export default function Sessions() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // Fetch user profile for recommendations
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
+        if (profileDoc.exists()) {
+          setUserProfile(profileDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -142,6 +161,71 @@ export default function Sessions() {
     const dateB = new Date(b.date + ' ' + b.time);
     return dateA - dateB;
   });
+
+  // Recommend sessions based on user profile
+  const getRecommendedSessions = () => {
+    if (!userProfile || !userProfile.ratings) return [];
+    
+    const { ratings, location, activities } = userProfile;
+    
+    // Find user's best activity
+    let bestActivity = 'running';
+    let bestRating = ratings.running || 0;
+    
+    if ((ratings.cycling || 0) > bestRating) {
+      bestActivity = 'cycling';
+      bestRating = ratings.cycling;
+    }
+    if ((ratings.swimming || 0) > bestRating) {
+      bestActivity = 'swimming';
+      bestRating = ratings.swimming;
+    }
+    
+    // Determine recommended intensity based on rating
+    let recommendedIntensities = [];
+    if (bestRating <= 2) {
+      recommendedIntensities = ['easy'];
+    } else if (bestRating === 3) {
+      recommendedIntensities = ['easy', 'moderate'];
+    } else {
+      recommendedIntensities = ['moderate', 'hard'];
+    }
+    
+    // Score and sort sessions
+    const scoredSessions = sortedSessions.map(session => {
+      let score = 0;
+      
+      // Activity match (highest weight)
+      if (session.activity_type === bestActivity) score += 10;
+      if (activities?.includes(session.activity_type)) score += 5;
+      
+      // Intensity match
+      if (recommendedIntensities.includes(session.intensity)) score += 8;
+      
+      // Location match
+      if (location && session.location.toLowerCase().includes(location.toLowerCase())) {
+        score += 6;
+      }
+      
+      // Not already joined
+      if (!session.participants?.includes(user.uid)) score += 3;
+      
+      // Has space available
+      if (!session.max_participants || (session.participants?.length || 0) < session.max_participants) {
+        score += 2;
+      }
+      
+      return { ...session, recommendationScore: score };
+    });
+    
+    // Return top 5 recommendations with score > 10
+    return scoredSessions
+      .filter(s => s.recommendationScore >= 10)
+      .sort((a, b) => b.recommendationScore - a.recommendationScore)
+      .slice(0, 5);
+  };
+
+  const recommendedSessions = getRecommendedSessions();
 
   const getActivityEmoji = (type) => {
     switch(type) {
@@ -348,6 +432,80 @@ export default function Sessions() {
               sessions={sortedSessions} 
               onMarkerClick={handleMarkerClick}
             />
+          </div>
+        )}
+
+        {/* Recommended Sessions */}
+        {recommendedSessions.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-2xl md:text-3xl font-black text-white">✨ Recommended For You</h2>
+              <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-semibold">
+                Based on your profile
+              </span>
+            </div>
+            
+            <div className="grid gap-4 mb-8">
+              {recommendedSessions.map((session) => {
+                const isParticipant = session.participants?.includes(user.uid);
+                const participantCount = session.participants?.length || 0;
+                const hostProfile = profiles[session.host_user_id];
+                
+                return (
+                  <div 
+                    key={session.id}
+                    className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 rounded-xl border-2 border-orange-500/50 p-4 md:p-8 hover:border-orange-500 transition cursor-pointer"
+                    onClick={() => router.push(`/session/${session.id}`)}
+                  >
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
+                          <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
+                          <h3 className="text-xl md:text-2xl font-bold text-white">{session.title}</h3>
+                          <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
+                            {session.intensity}
+                          </span>
+                          <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
+                            MATCH
+                          </span>
+                        </div>
+                        
+                        <p className="text-gray-300 mb-3 text-sm md:text-base line-clamp-2">{session.description}</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-300 mb-3">
+                          <div>📅 {session.date}</div>
+                          <div>🕐 {session.time}</div>
+                          <div className="sm:col-span-2">📍 {session.location}</div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <span>👥 {participantCount} joined</span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJoinSession(session.id, session.participants || []);
+                        }}
+                        disabled={!isParticipant && session.max_participants && participantCount >= session.max_participants}
+                        className={`w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition ${
+                          isParticipant
+                            ? 'bg-red-500 text-white hover:bg-red-600'
+                            : 'bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed'
+                        }`}
+                      >
+                        {isParticipant ? 'Leave' : 'Join'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="border-t border-gray-800 pt-8">
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-4">All Sessions</h2>
+            </div>
           </div>
         )}
 

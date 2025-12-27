@@ -1,226 +1,452 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, collection, query, getDocs } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 
-function NotificationButton({ user, router }) {
+export default function Navigation({ user }) {
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
+        if (profileDoc.exists()) {
+          setUserProfile(profileDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchUnreadCount = async () => {
-      try {
-        // Get last check time
-        const userDataDoc = await getDoc(doc(db, 'user_data', user.uid));
-        const lastCheck = userDataDoc.exists() ? userDataDoc.data().lastNotificationCheck?.toDate() : new Date(0);
+    const q = query(
+      collection(db, 'sessions'),
+      where('participants', 'array-contains', user.uid)
+    );
 
-        // Get all user sessions
-        const allSessionsQuery = query(collection(db, 'sessions'));
-        const sessionsSnapshot = await getDocs(allSessionsQuery);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let totalUnread = 0;
+
+      snapshot.docs.forEach((sessionDoc) => {
+        const commentsRef = collection(db, 'sessions', sessionDoc.id, 'comments');
         
-        const userSessions = sessionsSnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(session => 
-            session.host_user_id === user.uid || 
-            session.participants?.includes(user.uid)
-          );
-
-        // Count unread comments
-        let count = 0;
-        for (const session of userSessions) {
-          const commentsSnapshot = await getDocs(collection(db, 'sessions', session.id, 'comments'));
-          
-          commentsSnapshot.docs.forEach(doc => {
+        onSnapshot(commentsRef, (commentsSnapshot) => {
+          const unreadComments = commentsSnapshot.docs.filter(doc => {
             const comment = doc.data();
-            if (comment.user_id !== user.uid && comment.created_at?.toDate() > lastCheck) {
-              count++;
-            }
+            return comment.userId !== user.uid && 
+                   (!comment.readBy || !comment.readBy.includes(user.uid));
           });
-        }
+          
+          totalUnread = unreadComments.length;
+          setUnreadCount(totalUnread);
+        });
+      });
+    });
 
-        setUnreadCount(count);
-      } catch (error) {
-        console.error('Error fetching unread count:', error);
-      }
+    const intervalId = setInterval(() => {
+      
+    }, 10000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
     };
-
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 10000); // Check every 10 seconds
-    
-    return () => clearInterval(interval);
   }, [user]);
 
-  return (
-    <button
-      onClick={() => router.push('/notifications')}
-      className="text-gray-300 hover:text-orange-500 font-medium transition relative"
-    >
-      Notifications
-      {unreadCount > 0 && (
-        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-          {unreadCount > 9 ? '9+' : unreadCount}
-        </span>
-      )}
-    </button>
-  );
-}
-
-export default function Navigation({ user }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const router = useRouter();
-
   const handleSignOut = async () => {
-    await signOut(auth);
-    router.push('/');
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const navItems = [
     { label: 'Browse Sessions', path: '/browse' },
     { label: 'How it Works', path: '/how-it-works' },
     { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Notifications', path: '/notifications' },
+    { label: 'Notifications', path: '/notifications', badge: unreadCount },
     { label: 'Create Session', path: '/create' },
-    { label: 'Profile', path: '/profile' },
   ];
 
   return (
-    <nav className="bg-black shadow-md border-b border-gray-800 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <h1 
-            className="text-2xl md:text-3xl font-bold text-orange-500 cursor-pointer italic" 
-            onClick={() => router.push('/browse')}
-          >
-            Gruppetto
-          </h1>
+    <nav style={{ 
+      background: '#000', 
+      borderBottom: '1px solid #374151',
+      position: 'sticky',
+      top: 0,
+      zIndex: 50
+    }}>
+      <div style={{ 
+        maxWidth: '80rem', 
+        margin: '0 auto', 
+        padding: '1rem 1.5rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        {/* Logo */}
+        <button
+          onClick={() => router.push('/browse')}
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: '900',
+            color: '#f97316',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontStyle: 'italic'
+          }}
+        >
+          Gruppetto
+        </button>
 
-          {/* Desktop Navigation */}
-          {user && (
-            <>
-              <div className="hidden md:flex items-center space-x-6">
-                {navItems.map((item) => {
-                  if (item.path === '/notifications') {
-                    return (
-                      <NotificationButton key={item.path} user={user} router={router} />
-                    );
-                  }
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => router.push(item.path)}
-                      className="text-gray-300 hover:text-orange-500 font-medium transition"
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
+        {/* Desktop Navigation */}
+        <div style={{ 
+          display: 'none', 
+          gap: '1.5rem', 
+          alignItems: 'center',
+        }}
+        className="desktop-nav"
+        >
+          {navItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              style={{
+                color: '#d1d5db',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '500',
+                transition: 'color 0.2s',
+                position: 'relative',
+                padding: '0.5rem'
+              }}
+              onMouseEnter={(e) => e.target.style.color = '#f97316'}
+              onMouseLeave={(e) => e.target.style.color = '#d1d5db'}
+            >
+              {item.label}
+              {item.badge > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '0',
+                  right: '-0.5rem',
+                  background: '#ef4444',
+                  color: '#fff',
+                  borderRadius: '9999px',
+                  padding: '0.125rem 0.375rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold'
+                }}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          ))}
 
-              {/* Desktop User Menu */}
-              <div className="hidden md:flex items-center space-x-4 relative">
-                <span className="text-gray-400 text-sm">{user.email}</span>
-                
-                {/* User Dropdown Button */}
+          {/* Desktop User Menu */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#1f2937'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              {userProfile?.profileImage ? (
+                <img 
+                  src={userProfile.profileImage} 
+                  alt={userProfile.displayName || 'Profile'}
+                  style={{
+                    width: '2.5rem',
+                    height: '2.5rem',
+                    borderRadius: '9999px',
+                    objectFit: 'cover',
+                    border: '2px solid #f97316'
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '2.5rem',
+                  height: '2.5rem',
+                  borderRadius: '9999px',
+                  background: '#1f2937',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.125rem',
+                  border: '2px solid #f97316'
+                }}>
+                  👤
+                </div>
+              )}
+              <span style={{ color: '#fff', fontWeight: '600', fontSize: '1rem' }}>
+                {userProfile?.displayName || 'Profile'}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style={{ color: '#9ca3af' }}>
+                <path d="M6 9L1 4h10z"/>
+              </svg>
+            </button>
+
+            {showUserMenu && (
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                marginTop: '0.5rem',
+                width: '12rem',
+                background: '#111827',
+                border: '1px solid #374151',
+                borderRadius: '0.5rem',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                zIndex: 50
+              }}>
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-semibold transition flex items-center gap-2"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push('/profile');
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.75rem 1rem',
+                    color: '#fff',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
                 >
-                  ⚙️
-                  <span className="text-sm">▼</span>
+                  👤 My Profile
                 </button>
-
-                {/* Dropdown Menu */}
-                {userMenuOpen && (
-                  <>
-                    {/* Backdrop to close menu when clicking outside */}
-                    <div 
-                      className="fixed inset-0 z-10"
-                      onClick={() => setUserMenuOpen(false)}
-                    />
-                    
-                    <div className="absolute right-0 top-12 bg-gray-900 border border-gray-800 rounded-xl shadow-xl py-2 w-48 z-20">
-                      <button
-                        onClick={() => {
-                          router.push('/settings');
-                          setUserMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-orange-500 transition flex items-center gap-2"
-                      >
-                        ⚙️ Settings
-                      </button>
-                      <div className="border-t border-gray-800 my-1"></div>
-                      <button
-                        onClick={() => {
-                          handleSignOut();
-                          setUserMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-red-400 hover:bg-gray-800 transition flex items-center gap-2"
-                      >
-                        🚪 Sign Out
-                      </button>
-                    </div>
-                  </>
-                )}
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push('/settings');
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.75rem 1rem',
+                    color: '#fff',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  ⚙️ Settings
+                </button>
+                <div style={{ borderTop: '1px solid #374151' }}></div>
+                <button
+                  onClick={handleSignOut}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.75rem 1rem',
+                    color: '#f87171',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  🚪 Sign Out
+                </button>
               </div>
-
-              {/* Mobile Hamburger Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden text-white text-3xl focus:outline-none"
-              >
-                {mobileMenuOpen ? '✕' : '☰'}
-              </button>
-            </>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Mobile Menu */}
-        {user && mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 space-y-3">
-            {navItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => {
-                  router.push(item.path);
-                  setMobileMenuOpen(false);
+        {/* Mobile Menu Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="mobile-nav">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#1f2937'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            {userProfile?.profileImage ? (
+              <img 
+                src={userProfile.profileImage} 
+                alt={userProfile.displayName || 'Profile'}
+                style={{
+                  width: '2rem',
+                  height: '2rem',
+                  borderRadius: '9999px',
+                  objectFit: 'cover',
+                  border: '2px solid #f97316'
                 }}
-                className="block w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-900 hover:text-orange-500 rounded-lg transition font-medium"
+              />
+            ) : (
+              <div style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '9999px',
+                background: '#1f2937',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1rem',
+                border: '2px solid #f97316'
+              }}>
+                👤
+              </div>
+            )}
+            <span style={{ color: '#fff', fontWeight: '600', fontSize: '0.875rem' }}>
+              {userProfile?.displayName || 'Menu'}
+            </span>
+          </button>
+
+          {showUserMenu && (
+            <div style={{
+              position: 'absolute',
+              right: '1rem',
+              top: '4rem',
+              width: '12rem',
+              background: '#111827',
+              border: '1px solid #374151',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              zIndex: 50
+            }}>
+              <button
+                onClick={() => {
+                  setShowUserMenu(false);
+                  router.push('/profile');
+                }}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.75rem 1rem',
+                  color: '#fff',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                onMouseLeave={(e) => e.target.style.background = 'transparent'}
               >
-                {item.label}
+                👤 My Profile
               </button>
-            ))}
-            
-            <div className="border-t border-gray-800 pt-3 mt-3">
-              <p className="px-4 py-2 text-gray-500 text-sm">{user.email}</p>
-              
               <button
                 onClick={() => {
+                  setShowUserMenu(false);
                   router.push('/settings');
-                  setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-900 hover:text-orange-500 rounded-lg transition font-medium"
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.75rem 1rem',
+                  color: '#fff',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                onMouseLeave={(e) => e.target.style.background = 'transparent'}
               >
                 ⚙️ Settings
               </button>
-              
+              <div style={{ borderTop: '1px solid #374151' }}></div>
               <button
-                onClick={() => {
-                  handleSignOut();
-                  setMobileMenuOpen(false);
+                onClick={handleSignOut}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.75rem 1rem',
+                  color: '#f87171',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
                 }}
-                className="w-full mt-2 bg-orange-500 text-white px-4 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
+                onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                onMouseLeave={(e) => e.target.style.background = 'transparent'}
               >
-                Sign Out
+                🚪 Sign Out
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      <style jsx>{`
+        @media (min-width: 768px) {
+          .desktop-nav {
+            display: flex !important;
+          }
+          .mobile-nav {
+            display: none !important;
+          }
+        }
+        @media (max-width: 767px) {
+          .desktop-nav {
+            display: none !important;
+          }
+          .mobile-nav {
+            display: flex !important;
+          }
+        }
+      `}</style>
     </nav>
   );
 }
