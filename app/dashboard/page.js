@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [hostedSessions, setHostedSessions] = useState([]);
   const [joinedSessions, setJoinedSessions] = useState([]);
   const [filter, setFilter] = useState('upcoming'); // upcoming, past, all
+  const [profiles, setProfiles] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -62,6 +63,37 @@ export default function Dashboard() {
 
     fetchSessions();
   }, [user]);
+
+  // Fetch profiles for all session hosts
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!user) return;
+      
+      // Combine all sessions to get unique host IDs
+      const allSessions = [...hostedSessions, ...joinedSessions];
+      if (allSessions.length === 0) return;
+      
+      const profilesData = {};
+      const hostIds = [...new Set(allSessions.map(s => s.host_user_id).filter(Boolean))];
+      
+      for (const hostId of hostIds) {
+        if (!profiles[hostId]) {
+          try {
+            const profileDoc = await getDoc(doc(db, 'profiles', hostId));
+            if (profileDoc.exists()) {
+              profilesData[hostId] = profileDoc.data();
+            }
+          } catch (error) {
+            console.error('Error fetching profile:', error);
+          }
+        }
+      }
+      
+      setProfiles(prev => ({ ...prev, ...profilesData }));
+    };
+    
+    fetchProfiles();
+  }, [user, hostedSessions, joinedSessions]);
 
   const isPastSession = (session) => {
     if (!session.date) return false;
@@ -221,7 +253,7 @@ export default function Dashboard() {
                         <span>📅 {session.date}</span>
                         <span>🕐 {session.time}</span>
                         <span>📍 {session.location}</span>
-                        <span>Host: {session.host_email}</span>
+                        <span>Host: {profiles[session.host_user_id]?.displayName || session.host_email || 'Unknown'}</span>
                       </div>
                     </div>
                   </div>
