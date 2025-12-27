@@ -12,6 +12,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [stravaConnected, setStravaConnected] = useState(false);
+  const [stravaData, setStravaData] = useState(null);
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -21,6 +23,9 @@ export default function Profile() {
     location: '',
     profileImage: '',
     stravaLink: '',
+    stravaId: '',
+    stravaVerified: false,
+    stravaUsername: '',
     goals: '',
     ratings: {
       running: 0,
@@ -57,6 +62,59 @@ export default function Profile() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // Handle Strava OAuth callback
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const stravaId = params.get('strava_id');
+    const stravaUsername = params.get('strava_username');
+    const stravaFirstname = params.get('strava_firstname');
+    const stravaLastname = params.get('strava_lastname');
+    const stravaError = params.get('strava_error');
+
+    if (stravaError) {
+      alert('Strava connection failed. Please try again.');
+      // Clean URL
+      window.history.replaceState({}, '', '/profile');
+      return;
+    }
+
+    if (stravaId) {
+      const data = {
+        id: stravaId,
+        username: stravaUsername,
+        firstname: stravaFirstname,
+        lastname: stravaLastname,
+      };
+      
+      setStravaData(data);
+      setStravaConnected(true);
+      setFormData(prev => ({
+        ...prev,
+        stravaLink: `https://www.strava.com/athletes/${stravaId}`,
+        stravaId: stravaId,
+        stravaVerified: true,
+        stravaUsername: stravaUsername,
+      }));
+
+      // Clean URL
+      window.history.replaceState({}, '', '/profile');
+    }
+  }, []);
+
+  // Check if Strava is already connected
+  useEffect(() => {
+    if (formData.stravaId && formData.stravaVerified) {
+      setStravaConnected(true);
+      setStravaData({
+        id: formData.stravaId,
+        username: formData.stravaUsername || '',
+        firstname: formData.displayName || '',
+      });
+    }
+  }, [formData.stravaId, formData.stravaVerified, formData.stravaUsername, formData.displayName]);
 
   // Fetch user stats
   useEffect(() => {
@@ -178,6 +236,30 @@ export default function Profile() {
         ...formData.ratings,
         [activity]: rating,
       },
+    });
+  };
+
+  const handleConnectStrava = () => {
+    const clientId = '192146';
+    const redirectUri = `${window.location.origin}/api/strava/callback`;
+    const scope = 'read,activity:read';
+    
+    const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+    
+    window.location.href = authUrl;
+  };
+
+  const handleDisconnectStrava = () => {
+    if (!confirm('Disconnect your Strava account?')) return;
+    
+    setStravaConnected(false);
+    setStravaData(null);
+    setFormData({
+      ...formData,
+      stravaLink: '',
+      stravaId: '',
+      stravaVerified: false,
+      stravaUsername: '',
     });
   };
 
@@ -359,29 +441,63 @@ export default function Profile() {
             <p className="text-xs text-gray-500 mt-2">Let others know what you're working towards!</p>
           </div>
 
-          {/* Strava Link */}
+          {/* Strava Connection */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Strava Profile Link</label>
-            <input
-              type="url"
-              name="stravaLink"
-              value={formData.stravaLink}
-              onChange={handleChange}
-              placeholder="https://www.strava.com/athletes/..."
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
-            />
-            {formData.stravaLink && (
-              <a 
-                href={formData.stravaLink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="mt-3 w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
-                </svg>
-                View My Strava Profile
-              </a>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Strava Profile</label>
+            
+            {stravaConnected ? (
+              <div className="bg-black rounded-xl border border-green-500/30 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#fc4c02">
+                      <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                    </svg>
+                    <div>
+                      <p className="text-white font-semibold flex items-center gap-2">
+                        Connected to Strava
+                        <span className="text-green-400">✓</span>
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {stravaData?.firstname} {stravaData?.lastname}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDisconnectStrava}
+                    className="text-sm text-red-400 hover:text-red-300 transition"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+                <a 
+                  href={formData.stravaLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                  </svg>
+                  View My Strava Profile
+                </a>
+              </div>
+            ) : (
+              <div className="bg-black rounded-xl border border-gray-800 p-4">
+                <p className="text-gray-400 text-sm mb-3">
+                  Connect your Strava account to verify your profile and show your real activities.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleConnectStrava}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                  </svg>
+                  Connect Strava Account
+                </button>
+              </div>
             )}
           </div>
 
