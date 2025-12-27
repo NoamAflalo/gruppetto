@@ -246,14 +246,14 @@ export default function Profile() {
   };
 
   const handleConnectStrava = () => {
-    const clientId = '192146';
-    const redirectUri = `${window.location.origin}/api/strava/callback`;
-    const scope = 'read,activity:read';
-    
-    const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
-    
-    window.location.href = authUrl;
-  };
+  const clientId = '192146';
+  const redirectUri = `${window.location.origin}/api/strava/callback`;
+  const scope = 'read,activity:read';
+  
+  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+  
+  window.location.href = authUrl;
+};
 
   const handleDisconnectStrava = () => {
     if (!confirm('Disconnect your Strava account?')) return;
