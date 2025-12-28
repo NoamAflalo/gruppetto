@@ -2,12 +2,11 @@
 import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   onAuthStateChanged,
-  signInWithRedirect 
+  signInWithPopup,
+  signInWithRedirect,
+  GoogleAuthProvider,
+  getRedirectResult
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
