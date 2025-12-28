@@ -29,39 +29,45 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => {
-  // Handle redirect result on mobile
-  const handleRedirectResult = async () => {
-    try {
-      const result = await getRedirectResult(auth);
-      if (result?.user) {
-        // User signed in successfully
-        console.log('Signed in via redirect:', result.user);
+    const handleRedirectResult = async () => {
+      console.log('🔍 Starting redirect result check...');
+      
+      try {
+        const result = await getRedirectResult(auth);
+        console.log('📱 Redirect result:', result);
+        
+        if (result?.user) {
+          console.log('✅ Signed in:', result.user.email);
+          alert('SUCCESS: Signed in as ' + result.user.email);
+        } else {
+          console.log('⚠️ No user in result');
+          alert('INFO: No redirect result found');
+        }
+      } catch (error) {
+        console.error('❌ Redirect error:', error);
+        alert('ERROR: ' + error.code + ' - ' + error.message);
       }
-    } catch (error) {
-      console.error('Error handling redirect:', error);
-      alert('Error signing in. Please try again.');
-    }
-  };
-  
-  handleRedirectResult();
-}, []);
+    };
+    
+    handleRedirectResult();
+  }, []);
 
   const handleGoogleSignIn = async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    
-    // Use redirect on mobile, popup on desktop
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      await signInWithRedirect(auth, provider);
-    } else {
-      await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      
+      // Use redirect on mobile, popup on desktop
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      alert('Error signing in. Please try again.');
     }
-  } catch (error) {
-    console.error('Error signing in with Google:', error);
-    alert('Error signing in. Please try again.');
-  }
   };
 
   const handleEmailSignUp = async (e) => {
