@@ -6,7 +6,9 @@ import {
   signInWithPopup,
   signInWithRedirect,
   GoogleAuthProvider,
-  getRedirectResult
+  getRedirectResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
