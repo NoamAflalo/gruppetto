@@ -20,7 +20,7 @@ export async function POST(request) {
           <p><strong>Location:</strong> ${data.location}</p>
           <p>Total participants: ${data.participantCount}</p>
           <br/>
-          <a href="https://grupetto.com/sessions" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
+          <a href="https://gruppetto.com/sessions" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
         `;
         break;
         
@@ -31,9 +31,9 @@ export async function POST(request) {
           <h3>${data.sessionTitle}</h3>
           <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
           <p><strong>Location:</strong> ${data.location}</p>
-          <p>Your session is now visible to all Grupetto members.</p>
+          <p>Your session is now visible to all Gruppetto members.</p>
           <br/>
-          <a href="https://grupetto.com/sessions" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View All Sessions</a>
+          <a href="https://gruppetto.com/sessions" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View All Sessions</a>
         `;
         break;
         
@@ -55,7 +55,7 @@ export async function POST(request) {
     }
     
     const { data: emailData, error } = await resend.emails.send({
-      from: 'Grupetto <onboarding@resend.dev>', // Change this later to your domain
+      from: 'Gruppetto <onboarding@resend.dev>', // Change this later to your domain
       to: [to],
       subject: subject,
       html: html,
