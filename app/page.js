@@ -6,10 +6,10 @@ import {
   GoogleAuthProvider, 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  signInWithRedirect 
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
 
 export default function Home() {
   const [email, setEmail] = useState('');
