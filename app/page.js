@@ -49,17 +49,11 @@ export default function Home() {
   const handleGoogleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      
-      // ALWAYS use popup (even on mobile)
       await signInWithPopup(auth, provider);
     } catch (error) {
-      console.error('Error signing in with Google:', error);
-      
-      // If popup blocked, give user instructions
+      console.error('Error signing in:', error);
       if (error.code === 'auth/popup-blocked') {
-        alert('Please allow popups for this site in your browser settings, then try again.');
-      } else {
-        alert('Error: ' + error.message);
+        alert('Please allow popups for this site.');
       }
     }
   };
