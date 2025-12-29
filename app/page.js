@@ -4,7 +4,6 @@ import { auth } from '@/lib/firebase';
 import { 
   onAuthStateChanged,
   signInWithPopup,
-  signInWithRedirect,
   GoogleAuthProvider,
   getRedirectResult,
   createUserWithEmailAndPassword,
@@ -17,6 +16,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,7 +35,6 @@ export default function Home() {
         
         if (result?.user) {
           console.log('✅ Signed in via redirect:', result.user.email);
-          // User will be redirected to /browse by the other useEffect
         }
       } catch (error) {
         console.error('❌ Redirect error:', error);
@@ -48,12 +47,16 @@ export default function Home() {
 
   const handleGoogleSignIn = async () => {
     try {
+      setIsAuthenticating(true);
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error) {
+      setIsAuthenticating(false);
       console.error('Error signing in:', error);
       if (error.code === 'auth/popup-blocked') {
         alert('Please allow popups for this site.');
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        alert('Error signing in. Please try again.');
       }
     }
   };
@@ -93,6 +96,34 @@ export default function Home() {
       }
     }
   };
+
+  // Loader pendant l'authentification
+  if (isAuthenticating) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: '3rem', 
+            marginBottom: '1rem',
+            animation: 'spin 1s linear infinite'
+          }}>⚡</div>
+          <p style={{ color: '#fff', fontSize: '1.25rem' }}>Signing you in...</p>
+        </div>
+        <style jsx>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{
