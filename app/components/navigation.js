@@ -84,8 +84,8 @@ export default function Navigation({ user }) {
   };
 
   const navItems = [
-    { label: 'Browse Sessions', path: '/browse' },
     { label: 'How it Works', path: '/how-it-works' },
+    { label: 'Browse Sessions', path: '/browse' },
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Notifications', path: '/notifications', badge: unreadCount },
     { label: 'Create Session', path: '/create' },

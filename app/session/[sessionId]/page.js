@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, collection, onSnapshot, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../components/navigation';
@@ -71,7 +71,6 @@ export default function SessionDetail() {
       for (const docSnap of snapshot.docs) {
         const comment = docSnap.data();
         
-        // Skip comments without userId
         if (!comment.userId) {
           console.warn('Comment without userId:', docSnap.id);
           continue;
@@ -87,7 +86,6 @@ export default function SessionDetail() {
           });
         } catch (error) {
           console.error('Error fetching user profile for comment:', error);
-          // Add comment without profile
           commentsData.push({
             id: docSnap.id,
             ...comment,
@@ -117,42 +115,12 @@ export default function SessionDetail() {
         userId: user.uid,
         message: newMessage,
         timestamp: serverTimestamp(),
-        readBy: [user.uid], // Mark as read by sender immediately
+        readBy: [user.uid],
       });
 
       setNewMessage('');
-
-      // Only send email to OTHER participants (not yourself)
-      const otherParticipants = session.participants?.filter(id => id !== user.uid) || [];
       
-      if (otherParticipants.length > 0) {
-        const currentProfile = profiles[user.uid] || {};
-        
-        // Get emails of other participants
-        for (const participantId of otherParticipants) {
-          const participantProfile = profiles[participantId];
-          if (participantProfile?.email) {
-            try {
-              await fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'new_message',
-                  to: participantProfile.email,
-                  data: {
-                    sessionTitle: session.title,
-                    senderName: currentProfile.displayName || user.email,
-                    message: newMessage,
-                    sessionId: sessionId,
-                  },
-                }),
-              });
-            } catch (emailError) {
-              console.error('Email error:', emailError);
-            }
-          }
-        }
-      }
+      // NO EMAIL for comments anymore
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -166,40 +134,107 @@ export default function SessionDetail() {
       const isParticipant = session.participants?.includes(user.uid);
 
       if (isParticipant) {
+        // Leave session
         await updateDoc(sessionRef, {
           participants: arrayRemove(user.uid)
         });
       } else {
+        // Join session
         await updateDoc(sessionRef, {
           participants: arrayUnion(user.uid)
         });
 
         const currentProfile = profiles[user.uid] || {};
 
+        // 1. Send confirmation email to the user joining
         try {
-          await fetch('/api/send-email', {
+          await fetch('/api/send-notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              type: 'session_joined',
-              to: session.host_email,
+              type: 'session_joined_confirmation',
+              to: user.email,
               data: {
+                sessionId: sessionId,
                 sessionTitle: session.title,
-                participantName: currentProfile.displayName || user.email,
                 date: session.date,
                 time: session.time,
                 location: session.location,
+                pace: session.pace,
                 participantCount: (session.participants?.length || 0) + 1,
               },
             }),
           });
         } catch (emailError) {
-          console.error('Email error:', emailError);
+          console.error('Confirmation email error:', emailError);
+        }
+
+        // 2. Send email to the host
+        if (session.host_email && session.host_user_id !== user.uid) {
+          try {
+            await fetch('/api/send-notification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'session_joined',
+                to: session.host_email,
+                data: {
+                  sessionId: sessionId,
+                  sessionTitle: session.title,
+                  participantName: currentProfile.displayName || user.email,
+                  date: session.date,
+                  time: session.time,
+                  location: session.location,
+                  participantCount: (session.participants?.length || 0) + 1,
+                },
+              }),
+            });
+          } catch (emailError) {
+            console.error('Host notification email error:', emailError);
+          }
+        }
+
+        // 3. Send email to ALL other participants (not yourself, not the host if already notified)
+        const otherParticipants = session.participants?.filter(id => 
+          id !== user.uid && id !== session.host_user_id
+        ) || [];
+        
+        for (const participantId of otherParticipants) {
+          const participantProfile = profiles[participantId];
+          if (participantProfile?.email) {
+            try {
+              await fetch('/api/send-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'session_joined',
+                  to: participantProfile.email,
+                  data: {
+                    sessionId: sessionId,
+                    sessionTitle: session.title,
+                    participantName: currentProfile.displayName || user.email,
+                    date: session.date,
+                    time: session.time,
+                    location: session.location,
+                    participantCount: (session.participants?.length || 0) + 1,
+                  },
+                }),
+              });
+            } catch (emailError) {
+              console.error('Participant notification email error:', emailError);
+            }
+          }
         }
       }
     } catch (error) {
       console.error('Error joining/leaving session:', error);
     }
+  };
+
+  const handleShareWhatsApp = () => {
+    const message = `Join my ${session.activity_type} session!\n\n${session.title}\n📅 ${session.date} at ${session.time}\n📍 ${session.location}\n\n👉 ${window.location.href}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const formatTime = (timestamp) => {
@@ -331,20 +366,31 @@ export default function SessionDetail() {
               </div>
             </div>
 
-            {/* Join/Leave Button */}
-            <button
-              onClick={handleJoinSession}
-              disabled={!isParticipant && isFull}
-              className={`w-full md:w-auto md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg transition ${
-                isParticipant
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : isFull
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-500 text-white hover:bg-green-600'
-              }`}
-            >
-              {isParticipant ? 'Leave Session' : isFull ? 'Session Full' : 'Join Session'}
-            </button>
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3 w-full md:w-auto">
+              {/* Join/Leave Button */}
+              <button
+                onClick={handleJoinSession}
+                disabled={!isParticipant && isFull}
+                className={`w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg transition ${
+                  isParticipant
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : isFull
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                {isParticipant ? 'Leave Session' : isFull ? 'Session Full' : 'Join Session'}
+              </button>
+
+              {/* WhatsApp Share Button */}
+              <button
+                onClick={handleShareWhatsApp}
+                className="w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 bg-[#25D366] text-white rounded-xl font-bold text-base md:text-lg hover:bg-[#128C7E] transition flex items-center justify-center gap-2"
+              >
+                <span>📱</span> Share on WhatsApp
+              </button>
+            </div>
           </div>
         </div>
 

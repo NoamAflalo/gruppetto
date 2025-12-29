@@ -9,6 +9,9 @@ export async function POST(request) {
     
     let subject, html;
     
+    // URL de base
+    const baseUrl = 'https://www.getgruppetto.com';
+    
     switch(type) {
       case 'session_joined':
         subject = `Someone joined your session: ${data.sessionTitle}`;
@@ -20,7 +23,7 @@ export async function POST(request) {
           <p><strong>Location:</strong> ${data.location}</p>
           <p>Total participants: ${data.participantCount}</p>
           <br/>
-          <a href="https://gruppetto.com/sessions" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
+          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
         `;
         break;
         
@@ -33,7 +36,7 @@ export async function POST(request) {
           <p><strong>Location:</strong> ${data.location}</p>
           <p>Your session is now visible to all Gruppetto members.</p>
           <br/>
-          <a href="https://gruppetto.com/sessions" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View All Sessions</a>
+          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
         `;
         break;
         
@@ -47,6 +50,24 @@ export async function POST(request) {
           <p><strong>Location:</strong> ${data.location}</p>
           <p><strong>Participants:</strong> ${data.participantCount}</p>
           <p>See you there! 💪</p>
+          <br/>
+          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
+        `;
+        break;
+        
+      case 'session_joined_confirmation':
+        subject = `You joined: ${data.sessionTitle}`;
+        html = `
+          <h2>You're all set!</h2>
+          <p>You successfully joined this training session:</p>
+          <h3>${data.sessionTitle}</h3>
+          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
+          <p><strong>Location:</strong> ${data.location}</p>
+          <p><strong>Pace:</strong> ${data.pace || 'Not specified'}</p>
+          <p><strong>Total participants:</strong> ${data.participantCount}</p>
+          <p>We'll send you a reminder the day before. See you there! 💪</p>
+          <br/>
+          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session Details</a>
         `;
         break;
         
@@ -55,7 +76,7 @@ export async function POST(request) {
     }
     
     const { data: emailData, error } = await resend.emails.send({
-      from: 'Gruppetto <onboarding@resend.dev>', // Change this later to your domain
+      from: 'Gruppetto <onboarding@resend.dev>',
       to: [to],
       subject: subject,
       html: html,
