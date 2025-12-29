@@ -50,17 +50,17 @@ export default function Home() {
     try {
       const provider = new GoogleAuthProvider();
       
-      // Use redirect on mobile, popup on desktop
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
+      // ALWAYS use popup (even on mobile)
+      await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Error signing in with Google:', error);
-      alert('Error signing in. Please try again.');
+      
+      // If popup blocked, give user instructions
+      if (error.code === 'auth/popup-blocked') {
+        alert('Please allow popups for this site in your browser settings, then try again.');
+      } else {
+        alert('Error: ' + error.message);
+      }
     }
   };
 
