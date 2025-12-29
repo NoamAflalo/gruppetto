@@ -30,18 +30,12 @@ export default function Home() {
 
   useEffect(() => {
     const handleRedirectResult = async () => {
-      console.log('🔍 Starting redirect result check...');
-      
       try {
         const result = await getRedirectResult(auth);
-        console.log('📱 Redirect result:', result);
         
         if (result?.user) {
-          console.log('✅ Signed in:', result.user.email);
-          alert('SUCCESS: Signed in as ' + result.user.email);
-        } else {
-          console.log('⚠️ No user in result');
-          alert('INFO: No redirect result found');
+          console.log('✅ Signed in via redirect:', result.user.email);
+          // User will be redirected to /browse by the other useEffect
         }
       } catch (error) {
         console.error('❌ Redirect error:', error);
