@@ -22,7 +22,7 @@ export default function CreateSession() {
     intensity: 'moderate',
     distance: '',
     max_participants: '',
-    isPrivate: false, // NOUVEAU
+    isPrivate: false,
   });
   const router = useRouter();
 
@@ -101,14 +101,12 @@ export default function CreateSession() {
         created_at: serverTimestamp(),
       };
 
-      // Si session privée, ajouter le champ joinRequests
       if (formData.isPrivate) {
         sessionData.joinRequests = [];
       }
 
       const docRef = await addDoc(collection(db, 'sessions'), sessionData);
 
-      // Send confirmation email
       try {
         await fetch('/api/send-notification', {
           method: 'POST',
@@ -238,7 +236,7 @@ export default function CreateSession() {
             </div>
           </div>
 
-          {/* Date and Time */}
+          {/* Date and Time - MODIFIÉ ICI */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">Date *</label>
@@ -248,7 +246,7 @@ export default function CreateSession() {
                 value={formData.date}
                 onChange={handleChange}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark]"
                 required
               />
             </div>
@@ -259,7 +257,7 @@ export default function CreateSession() {
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark]"
                 required
               />
             </div>
@@ -346,7 +344,7 @@ export default function CreateSession() {
             </div>
           </div>
 
-          {/* NOUVEAU : Private Session Toggle */}
+          {/* Private Session Toggle */}
           <div className="bg-black rounded-xl p-4 md:p-6 border border-gray-700">
             <div className="flex items-start gap-3">
               <input

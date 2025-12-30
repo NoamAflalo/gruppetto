@@ -345,25 +345,27 @@ export default function Sessions() {
         {showAdvancedFilters && (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6 mb-6 md:mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {/* Date From */}
+              {/* Date From - MODIFIÉ ICI */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">From Date</label>
                 <input
                   type="date"
                   value={advancedFilters.dateFrom}
+                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateFrom: e.target.value })}
-                  className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 [color-scheme:dark]"
                 />
               </div>
 
-              {/* Date To */}
+              {/* Date To - MODIFIÉ ICI */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">To Date</label>
                 <input
                   type="date"
                   value={advancedFilters.dateTo}
+                  min={advancedFilters.dateFrom || new Date().toISOString().split('T')[0]}
                   onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateTo: e.target.value })}
-                  className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 [color-scheme:dark]"
                 />
               </div>
 
