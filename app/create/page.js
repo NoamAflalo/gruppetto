@@ -1,4 +1,5 @@
 'use client';
+import LocationSelect from '../components/LocationSelect';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -18,7 +19,8 @@ export default function CreateSession() {
     activity_type: 'running',
     date: '',
     time: '',
-    location: '',
+    meetingPoint: '',
+    destination: '',
     intensity: 'moderate',
     distance: '',
     max_participants: '',
@@ -92,9 +94,29 @@ export default function CreateSession() {
       return;
     }
     
+    if (!formData.meetingPoint || formData.meetingPoint.trim() === '') {
+      alert('Please select a meeting point');
+      return;
+    }
+    
     try {
+      const locationDisplay = formData.destination 
+        ? `${formData.meetingPoint} → ${formData.destination}`
+        : formData.meetingPoint;
+
       const sessionData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        activity_type: formData.activity_type,
+        date: formData.date,
+        time: formData.time,
+        location: locationDisplay,
+        meetingPoint: formData.meetingPoint,
+        destination: formData.destination || '',
+        intensity: formData.intensity,
+        distance: formData.distance,
+        max_participants: formData.max_participants,
+        isPrivate: formData.isPrivate,
         host_user_id: user.uid,
         host_email: user.email,
         participants: [user.uid],
@@ -119,7 +141,7 @@ export default function CreateSession() {
               sessionTitle: formData.title,
               date: formData.date,
               time: formData.time,
-              location: formData.location,
+              location: locationDisplay,
             },
           }),
         });
@@ -165,6 +187,7 @@ export default function CreateSession() {
         </button>
 
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 space-y-4 md:space-y-6">
+          
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Session Title *</label>
@@ -236,7 +259,7 @@ export default function CreateSession() {
             </div>
           </div>
 
-          {/* Date and Time - MODIFIÉ ICI */}
+          {/* Date and Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">Date *</label>
@@ -263,19 +286,37 @@ export default function CreateSession() {
             </div>
           </div>
 
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Location *</label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g., Battersea Park"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
-              required
+          
+          {/* Meeting Point & Destination */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <LocationSelect
+              label="Meeting Point"
+              value={formData.meetingPoint}
+              onChange={(value) => setFormData({ ...formData, meetingPoint: value })}
+              required={true}
+              activityType={formData.activity_type}
             />
+            
+            {/* Destination - CACHÉ si swimming */}
+            {formData.activity_type !== 'swimming' && (
+              <LocationSelect
+                label="Destination (optional)"
+                value={formData.destination}
+                onChange={(value) => setFormData({ ...formData, destination: value })}
+                required={false}
+                activityType={formData.activity_type}
+              />
+            )}
           </div>
+
+          {/* Info bubble - CACHÉ si swimming */}
+          {formData.activity_type !== 'swimming' && (
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <p className="text-sm text-blue-400">
+                💡 <strong>Tip:</strong> Add a destination if your session involves traveling (e.g., "Meet at City Hall → Run to Battersea Park")
+              </p>
+            </div>
+          )}
 
           {/* Intensity */}
           <div>
