@@ -44,6 +44,10 @@ export default function SessionDetail() {
         if (sessionData.participants) {
           sessionData.participants.forEach(id => userIds.add(id));
         }
+        // Ajoute les userIds des joinRequests
+        if (sessionData.joinRequests) {
+          sessionData.joinRequests.forEach(req => userIds.add(req.userId));
+        }
 
         const profilesData = {};
         for (const userId of userIds) {
@@ -119,10 +123,116 @@ export default function SessionDetail() {
       });
 
       setNewMessage('');
-      
-      // NO EMAIL for comments anymore
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleRequestToJoin = async () => {
+    if (!user || !session) return;
+
+    try {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      const currentProfile = profiles[user.uid] || {};
+
+      // Ajouter une demande de rejoindre
+      const newRequest = {
+        userId: user.uid,
+        userName: currentProfile.displayName || user.email,
+        userEmail: user.email,
+        requestedAt: new Date().toISOString(),
+        status: 'pending'
+      };
+
+      await updateDoc(sessionRef, {
+        joinRequests: arrayUnion(newRequest)
+      });
+
+      // Envoyer email au créateur
+      try {
+        await fetch('/api/send-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'join_request',
+            to: session.host_email,
+            data: {
+              sessionId: sessionId,
+              sessionTitle: session.title,
+              requesterName: currentProfile.displayName || user.email,
+              date: session.date,
+              time: session.time,
+            },
+          }),
+        });
+      } catch (emailError) {
+        console.error('Email error:', emailError);
+      }
+
+    } catch (error) {
+      console.error('Error requesting to join:', error);
+    }
+  };
+
+  const handleApproveRequest = async (requestUserId) => {
+    if (!session || !isHost) return;
+
+    try {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      
+      // Trouve la demande
+      const request = session.joinRequests?.find(req => req.userId === requestUserId);
+      if (!request) return;
+
+      // Supprime la demande et ajoute aux participants
+      await updateDoc(sessionRef, {
+        joinRequests: arrayRemove(request),
+        participants: arrayUnion(requestUserId)
+      });
+
+      // Envoyer email à l'utilisateur approuvé
+      try {
+        await fetch('/api/send-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'join_request_approved',
+            to: request.userEmail,
+            data: {
+              sessionId: sessionId,
+              sessionTitle: session.title,
+              date: session.date,
+              time: session.time,
+              location: session.location,
+            },
+          }),
+        });
+      } catch (emailError) {
+        console.error('Email error:', emailError);
+      }
+
+    } catch (error) {
+      console.error('Error approving request:', error);
+    }
+  };
+
+  const handleRejectRequest = async (requestUserId) => {
+    if (!session || !isHost) return;
+
+    try {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      
+      // Trouve la demande
+      const request = session.joinRequests?.find(req => req.userId === requestUserId);
+      if (!request) return;
+
+      // Supprime la demande
+      await updateDoc(sessionRef, {
+        joinRequests: arrayRemove(request)
+      });
+
+    } catch (error) {
+      console.error('Error rejecting request:', error);
     }
   };
 
@@ -139,10 +249,14 @@ export default function SessionDetail() {
           participants: arrayRemove(user.uid)
         });
       } else {
-        // Join session
+        // Join session (session publique uniquement)
         await updateDoc(sessionRef, {
           participants: arrayUnion(user.uid)
         });
+
+        // Récupère la session MISE À JOUR
+        const updatedSessionDoc = await getDoc(sessionRef);
+        const updatedSession = updatedSessionDoc.data();
 
         const currentProfile = profiles[user.uid] || {};
 
@@ -156,12 +270,12 @@ export default function SessionDetail() {
               to: user.email,
               data: {
                 sessionId: sessionId,
-                sessionTitle: session.title,
-                date: session.date,
-                time: session.time,
-                location: session.location,
-                pace: session.pace,
-                participantCount: (session.participants?.length || 0) + 1,
+                sessionTitle: updatedSession.title,
+                date: updatedSession.date,
+                time: updatedSession.time,
+                location: updatedSession.location,
+                pace: updatedSession.pace,
+                participantCount: updatedSession.participants?.length || 0,
               },
             }),
           });
@@ -170,22 +284,22 @@ export default function SessionDetail() {
         }
 
         // 2. Send email to the host
-        if (session.host_email && session.host_user_id !== user.uid) {
+        if (updatedSession.host_email && updatedSession.host_user_id !== user.uid) {
           try {
             await fetch('/api/send-notification', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 type: 'session_joined',
-                to: session.host_email,
+                to: updatedSession.host_email,
                 data: {
                   sessionId: sessionId,
-                  sessionTitle: session.title,
+                  sessionTitle: updatedSession.title,
                   participantName: currentProfile.displayName || user.email,
-                  date: session.date,
-                  time: session.time,
-                  location: session.location,
-                  participantCount: (session.participants?.length || 0) + 1,
+                  date: updatedSession.date,
+                  time: updatedSession.time,
+                  location: updatedSession.location,
+                  participantCount: updatedSession.participants?.length || 0,
                 },
               }),
             });
@@ -194,34 +308,37 @@ export default function SessionDetail() {
           }
         }
 
-        // 3. Send email to ALL other participants (not yourself, not the host if already notified)
-        const otherParticipants = session.participants?.filter(id => 
-          id !== user.uid && id !== session.host_user_id
+        // 3. Send email to ALL other participants
+        const otherParticipants = updatedSession.participants?.filter(id => 
+          id !== user.uid && id !== updatedSession.host_user_id
         ) || [];
         
-        for (const participantId of otherParticipants) {
-          const participantProfile = profiles[participantId];
-          if (participantProfile?.email) {
-            try {
-              await fetch('/api/send-notification', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'session_joined',
-                  to: participantProfile.email,
-                  data: {
-                    sessionId: sessionId,
-                    sessionTitle: session.title,
-                    participantName: currentProfile.displayName || user.email,
-                    date: session.date,
-                    time: session.time,
-                    location: session.location,
-                    participantCount: (session.participants?.length || 0) + 1,
-                  },
-                }),
-              });
-            } catch (emailError) {
-              console.error('Participant notification email error:', emailError);
+        if (otherParticipants.length > 0) {
+          for (const participantId of otherParticipants) {
+            const participantProfile = profiles[participantId];
+            
+            if (participantProfile?.email) {
+              try {
+                await fetch('/api/send-notification', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    type: 'session_joined',
+                    to: participantProfile.email,
+                    data: {
+                      sessionId: sessionId,
+                      sessionTitle: updatedSession.title,
+                      participantName: currentProfile.displayName || user.email,
+                      date: updatedSession.date,
+                      time: updatedSession.time,
+                      location: updatedSession.location,
+                      participantCount: updatedSession.participants?.length || 0,
+                    },
+                  }),
+                });
+              } catch (emailError) {
+                console.error('Participant notification email error:', emailError);
+              }
             }
           }
         }
@@ -232,7 +349,16 @@ export default function SessionDetail() {
   };
 
   const handleShareWhatsApp = () => {
-    const message = `Join my ${session.activity_type} session!\n\n${session.title}\n📅 ${session.date} at ${session.time}\n📍 ${session.location}\n\n👉 ${window.location.href}`;
+    const message = `Join my ${session.activity_type} session!
+
+  ${session.title}
+
+  Date: ${session.date} at ${session.time}
+  Location: ${session.location}
+  ${session.distance ? `Distance: ${session.distance}` : ''}
+
+  Join here: ${window.location.href}`;
+    
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -282,6 +408,10 @@ export default function SessionDetail() {
   const participantCount = session.participants?.length || 0;
   const isFull = session.max_participants && participantCount >= session.max_participants;
   const hostProfile = profiles[session.host_user_id];
+  
+  // Vérifie si l'utilisateur a déjà une demande en attente
+  const hasPendingRequest = session.joinRequests?.some(req => req.userId === user.uid && req.status === 'pending');
+  const pendingRequests = session.joinRequests?.filter(req => req.status === 'pending') || [];
 
   return (
     <div className="min-h-screen bg-black">
@@ -306,6 +436,12 @@ export default function SessionDetail() {
                 <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
                   {session.intensity}
                 </span>
+                {/* NOUVEAU : Badge Private */}
+                {session.isPrivate && (
+                  <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    🔒 Private
+                  </span>
+                )}
               </div>
               
               <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-lg leading-relaxed">{session.description}</p>
@@ -368,20 +504,40 @@ export default function SessionDetail() {
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 w-full md:w-auto">
-              {/* Join/Leave Button */}
-              <button
-                onClick={handleJoinSession}
-                disabled={!isParticipant && isFull}
-                className={`w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg transition ${
-                  isParticipant
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : isFull
-                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-500 text-white hover:bg-green-600'
-                }`}
-              >
-                {isParticipant ? 'Leave Session' : isFull ? 'Session Full' : 'Join Session'}
-              </button>
+              {/* Join/Leave/Request Button */}
+              {session.isPrivate && !isParticipant && !isHost ? (
+                hasPendingRequest ? (
+                  <button
+                    disabled
+                    className="w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-not-allowed"
+                  >
+                    ⏳ Request Pending
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRequestToJoin}
+                    className="w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg bg-purple-500 text-white hover:bg-purple-600 transition"
+                  >
+                    🔒 Request to Join
+                  </button>
+                )
+              ) : (
+                <button
+                  onClick={handleJoinSession}
+                  disabled={(!isParticipant && isFull) || isHost}
+                  className={`w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg transition ${
+                    isHost
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : isParticipant
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : isFull
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
+                >
+                  {isHost ? 'You\'re the Host' : isParticipant ? 'Leave Session' : isFull ? 'Session Full' : 'Join Session'}
+                </button>
+              )}
 
               {/* WhatsApp Share Button */}
               <button
@@ -393,6 +549,59 @@ export default function SessionDetail() {
             </div>
           </div>
         </div>
+
+        {/* NOUVEAU : Join Requests (visible uniquement pour le host) */}
+        {isHost && pendingRequests.length > 0 && (
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">
+              🔔 Join Requests ({pendingRequests.length})
+            </h2>
+            <div className="space-y-3">
+              {pendingRequests.map((request) => {
+                const requesterProfile = profiles[request.userId];
+                return (
+                  <div key={request.userId} className="bg-black rounded-xl p-4 border border-gray-800 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      {requesterProfile?.profileImage ? (
+                        <img 
+                          src={requesterProfile.profileImage} 
+                          alt={requesterProfile.displayName}
+                          className="rounded-full object-cover border-2 border-gray-700"
+                          style={{ width: '3rem', height: '3rem' }}
+                        />
+                      ) : (
+                        <div className="rounded-full bg-gray-800 flex items-center justify-center text-xl border-2 border-gray-700"
+                             style={{ width: '3rem', height: '3rem' }}>
+                          👤
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-white font-semibold">{request.userName}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(request.requestedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApproveRequest(request.userId)}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition text-sm"
+                      >
+                        ✓ Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectRequest(request.userId)}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition text-sm"
+                      >
+                        ✗ Reject
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Map */}
         <div className="mb-6 md:mb-8 rounded-2xl overflow-hidden border border-gray-800" style={{ height: '400px' }}>

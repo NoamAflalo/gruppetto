@@ -7,12 +7,28 @@ export async function POST(request) {
   try {
     const { type, to, data } = await request.json();
     
-    let subject, html;
+    console.log('📬 Email API called:', { type, to });
     
-    // URL de base
+    let subject, html;
     const baseUrl = 'https://www.getgruppetto.com';
     
     switch(type) {
+      case 'session_joined_confirmation':
+        subject = `You joined: ${data.sessionTitle}`;
+        html = `
+          <h2>You're all set!</h2>
+          <p>You successfully joined this training session:</p>
+          <h3>${data.sessionTitle}</h3>
+          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
+          <p><strong>Location:</strong> ${data.location}</p>
+          <p><strong>Pace:</strong> ${data.pace || 'Not specified'}</p>
+          <p><strong>Total participants:</strong> ${data.participantCount}</p>
+          <p>We'll send you a reminder the day before. See you there! 💪</p>
+          <br/>
+          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session Details</a>
+        `;
+        break;
+        
       case 'session_joined':
         subject = `Someone joined your session: ${data.sessionTitle}`;
         html = `
@@ -54,17 +70,28 @@ export async function POST(request) {
           <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
         `;
         break;
-        
-      case 'session_joined_confirmation':
-        subject = `You joined: ${data.sessionTitle}`;
+
+      case 'join_request':
+        subject = `Join Request: ${data.sessionTitle}`;
         html = `
-          <h2>You're all set!</h2>
-          <p>You successfully joined this training session:</p>
+          <h2>🔔 New Join Request</h2>
+          <p><strong>${data.requesterName}</strong> wants to join your private session:</p>
+          <h3>${data.sessionTitle}</h3>
+          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
+          <p>Go to your session to approve or reject this request.</p>
+          <br/>
+          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #a855f7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Requests</a>
+        `;
+        break;
+
+      case 'join_request_approved':
+        subject = `Request Approved: ${data.sessionTitle}`;
+        html = `
+          <h2>🎉 Your request was approved!</h2>
+          <p>You've been accepted to join this training session:</p>
           <h3>${data.sessionTitle}</h3>
           <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
           <p><strong>Location:</strong> ${data.location}</p>
-          <p><strong>Pace:</strong> ${data.pace || 'Not specified'}</p>
-          <p><strong>Total participants:</strong> ${data.participantCount}</p>
           <p>We'll send you a reminder the day before. See you there! 💪</p>
           <br/>
           <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session Details</a>
@@ -83,11 +110,14 @@ export async function POST(request) {
     });
 
     if (error) {
+      console.error('📧 Email send error:', error);
       return NextResponse.json({ error }, { status: 400 });
     }
 
+    console.log('✅ Email sent successfully to:', to);
     return NextResponse.json({ success: true, data: emailData });
   } catch (error) {
+    console.error('❌ Email API error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -22,6 +22,7 @@ export default function CreateSession() {
     intensity: 'moderate',
     distance: '',
     max_participants: '',
+    isPrivate: false, // NOUVEAU
   });
   const router = useRouter();
 
@@ -59,7 +60,6 @@ export default function CreateSession() {
         return;
       }
 
-      // Pre-fill form with AI suggestions
       setFormData({
         ...formData,
         title: data.title,
@@ -82,7 +82,6 @@ export default function CreateSession() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate date is not in the past
     const selectedDate = new Date(formData.date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -94,23 +93,31 @@ export default function CreateSession() {
     }
     
     try {
-      await addDoc(collection(db, 'sessions'), {
+      const sessionData = {
         ...formData,
         host_user_id: user.uid,
         host_email: user.email,
         participants: [user.uid],
         created_at: serverTimestamp(),
-      });
+      };
+
+      // Si session privée, ajouter le champ joinRequests
+      if (formData.isPrivate) {
+        sessionData.joinRequests = [];
+      }
+
+      const docRef = await addDoc(collection(db, 'sessions'), sessionData);
 
       // Send confirmation email
       try {
-        await fetch('/api/send-email', {
+        await fetch('/api/send-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'session_created',
             to: user.email,
             data: {
+              sessionId: docRef.id,
               sessionTitle: formData.title,
               date: formData.date,
               time: formData.time,
@@ -336,6 +343,27 @@ export default function CreateSession() {
                 min="1"
                 className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
               />
+            </div>
+          </div>
+
+          {/* NOUVEAU : Private Session Toggle */}
+          <div className="bg-black rounded-xl p-4 md:p-6 border border-gray-700">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="isPrivate"
+                checked={formData.isPrivate}
+                onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
+                className="mt-1 w-5 h-5 rounded border-gray-600 text-orange-500 focus:ring-orange-500 focus:ring-offset-gray-900"
+              />
+              <div className="flex-1">
+                <label htmlFor="isPrivate" className="block text-base font-semibold text-white cursor-pointer">
+                  🔒 Private Session (Request to Join)
+                </label>
+                <p className="text-sm text-gray-400 mt-1">
+                  Perfect for run clubs! People can see your session but need your approval to join.
+                </p>
+              </div>
             </div>
           </div>
 

@@ -136,24 +136,24 @@ export default function Sessions() {
   };
 
   const filteredSessions = sessions.filter(session => {
-  // Filter out past sessions
-  const sessionDateTime = new Date(`${session.date}T${session.time}`);
-  const now = new Date();
-  
-  // Session is in the past if date+time is before now
-  if (sessionDateTime < now) return false;
-  
-  // Activity type filter
-  if (filter !== 'all' && session.activity_type !== filter) return false;
-  
-  // Advanced filters
-  if (advancedFilters.dateFrom && session.date < advancedFilters.dateFrom) return false;
-  if (advancedFilters.dateTo && session.date > advancedFilters.dateTo) return false;
-  if (advancedFilters.intensities.length > 0 && !advancedFilters.intensities.includes(session.intensity)) return false;
-  if (advancedFilters.location && !session.location.toLowerCase().includes(advancedFilters.location.toLowerCase())) return false;
-  
-  return true;
-});
+    // Filter out past sessions
+    const sessionDateTime = new Date(`${session.date}T${session.time}`);
+    const now = new Date();
+    
+    // Session is in the past if date+time is before now
+    if (sessionDateTime < now) return false;
+    
+    // Activity type filter
+    if (filter !== 'all' && session.activity_type !== filter) return false;
+    
+    // Advanced filters
+    if (advancedFilters.dateFrom && session.date < advancedFilters.dateFrom) return false;
+    if (advancedFilters.dateTo && session.date > advancedFilters.dateTo) return false;
+    if (advancedFilters.intensities.length > 0 && !advancedFilters.intensities.includes(session.intensity)) return false;
+    if (advancedFilters.location && !session.location.toLowerCase().includes(advancedFilters.location.toLowerCase())) return false;
+    
+    return true;
+  });
 
   // Sort by date (soonest first)
   const sortedSessions = [...filteredSessions].sort((a, b) => {
@@ -494,6 +494,12 @@ export default function Sessions() {
                             <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
                               MATCH
                             </span>
+                            {/* NOUVEAU : Badge Private */}
+                            {session.isPrivate && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                🔒 Private
+                              </span>
+                            )}
                           </div>
                           
                           <p className="text-gray-300 mb-3 text-sm line-clamp-2">{session.description}</p>
@@ -569,6 +575,12 @@ export default function Sessions() {
                         <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
                           {session.intensity}
                         </span>
+                        {/* NOUVEAU : Badge Private */}
+                        {session.isPrivate && (
+                          <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                            🔒 Private
+                          </span>
+                        )}
                       </div>
                       
                       <p className="text-gray-400 mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
