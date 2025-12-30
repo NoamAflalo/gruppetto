@@ -210,7 +210,7 @@ export default function Home() {
           color: '#9ca3af',
           lineHeight: '1.6'
         }}>
-          Join the community of runners, cyclists, and swimmers in South West London. 
+          Join the community of runners, cyclists, and swimmers in London. 
           Find your training partners, organize sessions, and never train alone again.
         </p>
       </div>
