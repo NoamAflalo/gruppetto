@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { 
   onAuthStateChanged,
   signInWithPopup,
@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
 } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -45,18 +46,58 @@ export default function Home() {
     handleRedirectResult();
   }, []);
 
+  const createUserProfile = async (user) => {
+    try {
+      const profileRef = doc(db, 'profiles', user.uid);
+      const profileSnap = await getDoc(profileRef);
+      
+      // Si le profil n'existe pas, le créer
+      if (!profileSnap.exists()) {
+        await setDoc(profileRef, {
+          email: user.email,
+          displayName: user.displayName || user.email?.split('@')[0] || 'User',
+          profileImage: user.photoURL || null,
+          createdAt: new Date().toISOString(),
+          fitnessLevel: 'intermediate',
+          bio: '',
+          location: '',
+        });
+        console.log('✅ Profile created for:', user.email);
+      } else {
+        console.log('✓ Profile already exists for:', user.email);
+      }
+    } catch (error) {
+      console.error('Error creating profile:', error);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setIsAuthenticating(true);
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      
+      // Créer le profil si nécessaire
+      await createUserProfile(result.user);
+      
     } catch (error) {
       setIsAuthenticating(false);
       console.error('Error signing in:', error);
+      
       if (error.code === 'auth/popup-blocked') {
-        alert('Please allow popups for this site.');
-      } else if (error.code !== 'auth/popup-closed-by-user') {
-        alert('Error signing in. Please try again.');
+        alert('🚫 Popups are blocked. Please allow popups for this site in your browser settings.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // User fermé le popup, c'est normal
+      } else {
+        alert(
+          '⚠️ Having trouble signing in?\n\n' +
+          'If you\'re using Safari on iPhone:\n' +
+          '• Go to Settings → Safari\n' +
+          '• Turn OFF "Prevent Cross-Site Tracking"\n' +
+          '• Turn OFF "Block All Cookies"\n' +
+          '• Try again\n\n' +
+          'Or use Chrome instead (it works perfectly!).'
+        );
       }
     }
   };
@@ -65,7 +106,11 @@ export default function Home() {
     e.preventDefault();
     setError('');
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Créer le profil immédiatement
+      await createUserProfile(userCredential.user);
+      
       router.push('/browse');
     } catch (error) {
       console.error('Error signing up:', error);
