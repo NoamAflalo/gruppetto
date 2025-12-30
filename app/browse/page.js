@@ -162,7 +162,7 @@ export default function Sessions() {
     return dateA - dateB;
   });
 
-  // Recommend sessions based on user profile
+  // Recommend sessions based on user profile - IMPROVED ALGORITHM
   const getRecommendedSessions = () => {
     if (!userProfile || !userProfile.ratings) return [];
     
@@ -181,38 +181,66 @@ export default function Sessions() {
       bestRating = ratings.swimming;
     }
     
-    // Determine recommended intensity based on rating
-    let recommendedIntensities = [];
-    if (bestRating <= 2) {
-      recommendedIntensities = ['easy'];
-    } else if (bestRating === 3) {
-      recommendedIntensities = ['easy', 'moderate'];
-    } else {
-      recommendedIntensities = ['moderate', 'hard'];
-    }
-    
     // Score and sort sessions
     const scoredSessions = sortedSessions.map(session => {
       let score = 0;
       
-      // Activity match (highest weight)
-      if (session.activity_type === bestActivity) score += 10;
-      if (activities?.includes(session.activity_type)) score += 5;
-      
-      // Intensity match
-      if (recommendedIntensities.includes(session.intensity)) score += 8;
-      
-      // Location match
-      if (location && session.location.toLowerCase().includes(location.toLowerCase())) {
-        score += 6;
+      // 1. Activity match (highest weight)
+      if (session.activity_type === bestActivity) {
+        score += 15; // Ton meilleur sport = priorité max
+      } else if (activities?.includes(session.activity_type)) {
+        score += 8; // Sport que tu pratiques = bon match
       }
       
-      // Not already joined
-      if (!session.participants?.includes(user.uid)) score += 3;
+      // 2. Intensity match (basé sur ton niveau) - AVEC BLOCAGE
+      const sessionRating = ratings[session.activity_type] || bestRating;
       
-      // Has space available
+      // BLOQUER les sessions trop difficiles pour ton niveau
+      if (session.intensity === 'hard' && sessionRating < 3) {
+        return { ...session, recommendationScore: 0 }; // Bloqué complètement
+      }
+      
+      if (session.intensity === 'easy') {
+        // Easy sessions sont toujours bonnes (récupération)
+        score += 6;
+      } else if (session.intensity === 'moderate') {
+        // Moderate = bon pour niveau 2-5
+        if (sessionRating >= 2 && sessionRating <= 5) score += 8;
+        else if (sessionRating === 1) score += 3; // Débutant peut essayer
+      } else if (session.intensity === 'hard') {
+        // Hard = UNIQUEMENT pour niveau 4-5
+        if (sessionRating >= 4) score += 10;
+        else if (sessionRating === 3) score += 4; // Niveau 3 peut tenter avec précaution
+        // Niveau 1-2 sont déjà bloqués ci-dessus
+      }
+      
+      // 3. Location match (bonus si même zone)
+      if (location) {
+        const sessionLocation = session.meetingPoint || session.location.split(' → ')[0];
+        if (sessionLocation.toLowerCase().includes(location.toLowerCase())) {
+          score += 8;
+        }
+      }
+      
+      // 4. Not already joined (bonus)
+      if (!session.participants?.includes(user.uid)) {
+        score += 4;
+      } else {
+        score -= 10; // Pénalité si déjà inscrit
+      }
+      
+      // 5. Has space available (bonus)
       if (!session.max_participants || (session.participants?.length || 0) < session.max_participants) {
-        score += 2;
+        score += 3;
+      }
+      
+      // 6. Session bientôt (bonus pour sessions dans les 7 prochains jours)
+      const sessionDate = new Date(`${session.date}T${session.time}`);
+      const now = new Date();
+      const daysUntil = (sessionDate - now) / (1000 * 60 * 60 * 24);
+      
+      if (daysUntil <= 7) {
+        score += 5; // Sessions bientôt = plus pertinentes
       }
       
       return { ...session, recommendationScore: score };
@@ -220,7 +248,7 @@ export default function Sessions() {
     
     // Return top 5 recommendations with score > 10
     return scoredSessions
-      .filter(s => s.recommendationScore >= 10)
+      .filter(s => s.recommendationScore >= 10 && !s.participants?.includes(user.uid))
       .sort((a, b) => b.recommendationScore - a.recommendationScore)
       .slice(0, 5);
   };
@@ -345,7 +373,7 @@ export default function Sessions() {
         {showAdvancedFilters && (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6 mb-6 md:mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {/* Date From - MODIFIÉ ICI */}
+              {/* Date From */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">From Date</label>
                 <input
@@ -357,7 +385,7 @@ export default function Sessions() {
                 />
               </div>
 
-              {/* Date To - MODIFIÉ ICI */}
+              {/* Date To */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">To Date</label>
                 <input
@@ -496,7 +524,6 @@ export default function Sessions() {
                             <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
                               MATCH
                             </span>
-                            {/* NOUVEAU : Badge Private */}
                             {session.isPrivate && (
                               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                 🔒 Private
@@ -577,7 +604,6 @@ export default function Sessions() {
                         <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
                           {session.intensity}
                         </span>
-                        {/* NOUVEAU : Badge Private */}
                         {session.isPrivate && (
                           <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                             🔒 Private
