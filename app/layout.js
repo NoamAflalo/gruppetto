@@ -1,5 +1,6 @@
 import "./globals.css";
 import { GoogleAnalytics } from '@next/third-parties/google';
+import Footer from './components/Footer';
 
 export const metadata = {
   title: 'Gruppetto - Find Training Partners in London',
@@ -30,8 +31,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        {children}
+      <body className="antialiased" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <div style={{ flex: 1 }}>
+          {children}
+        </div>
+        <Footer />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
       </body>
     </html>
