@@ -7,6 +7,10 @@ export const metadata = {
   description: 'Join running, cycling, and swimming sessions with athletes in London. Connect with local training partners and level up your fitness.',
   keywords: 'running, cycling, swimming, training partners, London, fitness, workout buddy, run club, cycling club',
   authors: [{ name: 'Gruppetto' }],
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_GB',
@@ -14,13 +18,13 @@ export const metadata = {
     title: 'Gruppetto - Training Partners London',
     description: 'Find and join training sessions with local athletes in London',
     siteName: 'Gruppetto',
-    // images: ['/og-image.png'], // Décommente quand tu auras créé l'image
+     images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Gruppetto - Training Partners London',
     description: 'Find and join training sessions with local athletes',
-    // images: ['/og-image.png'], // Décommente quand tu auras créé l'image
+     images: ['/og-image.png'],
   },
   robots: {
     index: true,
