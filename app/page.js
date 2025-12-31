@@ -35,7 +35,7 @@ export default function Home() {
         const result = await getRedirectResult(auth);
         
         if (result?.user) {
-          console.log('✅ Signed in via redirect:', result.user.email);
+          // Redirect successful, user is signed in
         }
       } catch (error) {
         console.error('❌ Redirect error:', error);
@@ -62,9 +62,6 @@ export default function Home() {
           bio: '',
           location: '',
         });
-        console.log('✅ Profile created for:', user.email);
-      } else {
-        console.log('✓ Profile already exists for:', user.email);
       }
     } catch (error) {
       console.error('Error creating profile:', error);

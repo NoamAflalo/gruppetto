@@ -1,11 +1,12 @@
 'use client';
-import LocationSelect from '../components/LocationSelect';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
+import LocationSelect from '../components/LocationSelect';
+import Toast from '../components/Toast';
 
 export default function CreateSession() {
   const [user, setUser] = useState(null);
@@ -13,6 +14,7 @@ export default function CreateSession() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -42,7 +44,7 @@ export default function CreateSession() {
 
   const handleAIGenerate = async () => {
     if (!aiPrompt.trim()) {
-      alert('Please describe what kind of session you want');
+      setToast({ message: 'Please describe what kind of session you want', type: 'warning' });
       return;
     }
 
@@ -58,7 +60,7 @@ export default function CreateSession() {
       const data = await response.json();
       
       if (data.error) {
-        alert('Error generating session');
+        setToast({ message: 'Error generating session', type: 'error' });
         return;
       }
 
@@ -72,10 +74,11 @@ export default function CreateSession() {
 
       setShowAIModal(false);
       setAiPrompt('');
+      setToast({ message: 'Session generated successfully!', type: 'success' });
       
     } catch (error) {
       console.error('Error:', error);
-      alert('Error generating session');
+      setToast({ message: 'Error generating session', type: 'error' });
     } finally {
       setAiLoading(false);
     }
@@ -84,18 +87,17 @@ export default function CreateSession() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const selectedDate = new Date(formData.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
-    
-    if (selectedDate < today) {
-      alert('You cannot create a session in the past');
+    const sessionDateTime = new Date(`${formData.date}T${formData.time}`);
+    const now = new Date();
+
+    if (sessionDateTime < now) {
+      // ✅ Compare DATE + HEURE
+      setToast({ message: 'You cannot create a session in the past', type: 'error' });
       return;
     }
     
     if (!formData.meetingPoint || formData.meetingPoint.trim() === '') {
-      alert('Please select a meeting point');
+      setToast({ message: 'Please select a meeting point', type: 'error' });
       return;
     }
     
@@ -149,10 +151,11 @@ export default function CreateSession() {
         console.error('Email error:', emailError);
       }
       
-      router.push('/browse');
+      setToast({ message: 'Session created successfully!', type: 'success' });
+      setTimeout(() => router.push('/browse'), 1500);
     } catch (error) {
       console.error('Error creating session:', error);
-      alert('Error creating session. Please try again.');
+      setToast({ message: 'Error creating session. Please try again.', type: 'error' });
     }
   };
 
@@ -286,7 +289,6 @@ export default function CreateSession() {
             </div>
           </div>
 
-          
           {/* Meeting Point & Destination */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <LocationSelect
@@ -452,6 +454,15 @@ export default function CreateSession() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Toast Notifications */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         )}
       </div>
     </div>
