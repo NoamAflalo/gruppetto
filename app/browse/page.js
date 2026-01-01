@@ -367,7 +367,17 @@ export default function Sessions() {
     calendarDays.push(
       <div
         key={day}
-        onClick={() => hasSessions ? setSelectedDay(day) : null}
+        onClick={() => {
+          if (hasSessions) {
+            setSelectedDay(day);
+            setTimeout(() => {
+              document.getElementById('selected-day-sessions')?.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+              });
+            }, 100);
+          }
+        }}
         style={{
           aspectRatio: '1',
           padding: '1rem',
@@ -476,20 +486,20 @@ export default function Sessions() {
             📋 List
           </button>
           <button
-            onClick={() => setViewMode('map')}
-            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              viewMode === 'map' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
-            }`}
-          >
-            🗺️ Map
-          </button>
-          <button
             onClick={() => setViewMode('calendar')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
               viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
             }`}
           >
             📅 Calendar
+          </button>
+          <button
+            onClick={() => setViewMode('map')}
+            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+              viewMode === 'map' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+            }`}
+          >
+            🗺️ Map
           </button>
           <button
             onClick={() => setViewMode('clubs')}
@@ -816,8 +826,12 @@ export default function Sessions() {
               </div>
             </div>
 
+            {/* Sessions du jour sélectionné - SOUS le calendrier */}
             {selectedDay && (
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8">
+              <div 
+                id="selected-day-sessions"
+                className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8"
+              >
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-white">
                     {monthNames[currentDate.getMonth()]} {selectedDay}, {currentDate.getFullYear()}
