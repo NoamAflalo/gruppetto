@@ -45,11 +45,12 @@ export default function HowItWorks() {
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Create Your Profile</h2>
               <p className="text-sm md:text-lg text-gray-300 mb-3 md:mb-4 leading-relaxed">
                 Sign up and tell us about your fitness journey. Add your preferred activities (running, cycling, swimming), 
-                your fitness level, and your preferred pace. Upload a profile photo and link your Strava account to showcase your achievements.
+                your fitness level, and your location. Upload a profile photo to personalize your account. 
+                Our smart recommendation system uses your profile to suggest sessions that match your abilities and preferences.
               </p>
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
                 <p className="text-xs md:text-sm text-gray-400 mb-2">💡 Pro Tip:</p>
-                <p className="text-sm md:text-base text-gray-300">A complete profile gets 3x more session joins! People want to know who they'll be training with.</p>
+                <p className="text-sm md:text-base text-gray-300">Rate yourself for each activity (1-5) in Settings. This helps us recommend the perfect sessions for your fitness level!</p>
               </div>
             </div>
           </div>
@@ -61,23 +62,28 @@ export default function HowItWorks() {
               2
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Browse & Join Sessions</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Browse Sessions & Clubs</h2>
               <p className="text-sm md:text-lg text-gray-300 mb-3 md:mb-4 leading-relaxed">
-                Explore upcoming training sessions in your area. Use filters to find sessions that match your schedule, 
-                activity type, and intensity level. Check out the host's profile and see who else is joining.
+                Explore upcoming training sessions and clubs in your area. Switch between <strong>List View</strong> for detailed info, 
+                <strong> Calendar View</strong> to see what's happening when, or <strong>Map View</strong> to find sessions near you. 
+                Use filters to narrow down by activity type, date, intensity, and location.
               </p>
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl md:text-2xl">🗺️</span>
-                  <span className="text-sm md:text-base text-gray-300">Use Map View to find sessions near you</span>
+                  <span className="text-xl md:text-2xl">✨</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Personalized Recommendations</strong> - See sessions matched to your profile at the top</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xl md:text-2xl">🔍</span>
-                  <span className="text-sm md:text-base text-gray-300">Use Advanced Filters to narrow down by date, intensity, and location</span>
+                  <span className="text-xl md:text-2xl">📅</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Calendar View</strong> - Click any day to see all sessions scheduled</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">🗺️</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Map View</strong> - Visualize where sessions are happening</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xl md:text-2xl">👥</span>
-                  <span className="text-sm md:text-base text-gray-300">Click on profiles to learn more about participants</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Clubs Tab</strong> - Browse and join run clubs, cycling groups, and swim teams</span>
                 </div>
               </div>
             </div>
@@ -90,33 +96,55 @@ export default function HowItWorks() {
               3
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Create Your Own Session</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Join or Create Sessions</h2>
               <p className="text-sm md:text-lg text-gray-300 mb-3 md:mb-4 leading-relaxed">
-                Can't find a session that fits your schedule? Create your own! Choose your activity type, set the date, 
-                time, and location. Add details like distance and intensity level. You'll be notified when people join.
+                Found a session you like? Click "Join" to add yourself to the participant list. Creating your own session? 
+                Use our <strong>AI Session Generator</strong> for inspiration, or fill out the details yourself. 
+                Choose between public sessions (anyone can join) or private sessions (require approval).
               </p>
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
-                <p className="text-xs md:text-sm text-gray-400 mb-2">📧 Email Notifications:</p>
-                <p className="text-sm md:text-base text-gray-300">You'll receive an email every time someone joins your session, so you always know who's coming!</p>
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">🤖</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>AI Generator</strong> - Describe your ideal session and Claude AI creates it for you</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">🔒</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Private Sessions</strong> - Perfect for clubs! People can request to join and you approve them</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">📍</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Smart Locations</strong> - Set a meeting point and optional destination (e.g., "Hyde Park → Serpentine")</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Step 4 */}
+          {/* Step 4 - NEW: Clubs */}
           <div className="flex flex-col md:flex-row items-start gap-4 md:gap-8">
             <div className="flex-shrink-0 rounded-full bg-orange-500 flex items-center justify-center font-black text-white"
                  style={{ width: '4rem', height: '4rem', fontSize: '2rem', minWidth: '4rem', minHeight: '4rem' }}>
               4
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Chat & Coordinate</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Create or Join a Club</h2>
               <p className="text-sm md:text-lg text-gray-300 mb-3 md:mb-4 leading-relaxed">
-                Once you've joined a session, access the group chat to coordinate with other participants. 
-                Ask questions, share tips, or just get to know your training partners before the session.
+                Take it to the next level by creating your own run club, cycling group, or swim team. 
+                Add a cover photo, description, and start building your community. Club admins can create sessions directly 
+                for their club, making it easy to organize regular training.
               </p>
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
-                <p className="text-xs md:text-sm text-gray-400 mb-2">💬 Stay Updated:</p>
-                <p className="text-sm md:text-base text-gray-300">Check the Notifications page to see all activity on your sessions - new messages, new participants, and more.</p>
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">🏛️</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>One Club Per Person</strong> - Ensure quality by creating one official club</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">✓</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Featured Clubs</strong> - Top clubs get verified badge and featured placement</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl md:text-2xl">⚙️</span>
+                  <span className="text-sm md:text-base text-gray-300"><strong>Admin Controls</strong> - Manage members and create club sessions as an admin</span>
+                </div>
               </div>
             </div>
           </div>
@@ -128,15 +156,79 @@ export default function HowItWorks() {
               5
             </div>
             <div className="flex-1">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Chat & Coordinate</h2>
+              <p className="text-sm md:text-lg text-gray-300 mb-3 md:mb-4 leading-relaxed">
+                Once you've joined a session, use the comments section to coordinate with other participants. 
+                Ask questions, share tips, or just get to know your training partners. Get notified via email when 
+                someone joins your session or leaves a comment.
+              </p>
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+                <p className="text-xs md:text-sm text-gray-400 mb-2">📧 Email Notifications:</p>
+                <p className="text-sm md:text-base text-gray-300">Stay updated with email alerts for new participants, comments, and session updates!</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 6 */}
+          <div className="flex flex-col md:flex-row items-start gap-4 md:gap-8">
+            <div className="flex-shrink-0 rounded-full bg-orange-500 flex items-center justify-center font-black text-white"
+                 style={{ width: '4rem', height: '4rem', fontSize: '2rem', minWidth: '4rem', minHeight: '4rem' }}>
+              6
+            </div>
+            <div className="flex-1">
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Show Up & Train!</h2>
               <p className="text-sm md:text-lg text-gray-300 mb-3 md:mb-4 leading-relaxed">
                 Meet your training partners at the designated location and time. Have a great workout together! 
-                Your session history is tracked in your Dashboard so you can see your progress over time.
+                Your session history is tracked in your Dashboard, showing all the sessions you've hosted, joined, 
+                and the clubs you're part of.
               </p>
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
-                <p className="text-xs md:text-sm text-gray-400 mb-2">🏆 Build Your Stats:</p>
-                <p className="text-sm md:text-base text-gray-300">Track all your hosted and joined sessions in your Dashboard. Watch your fitness community grow!</p>
+                <p className="text-xs md:text-sm text-gray-400 mb-2">🏆 Track Your Progress:</p>
+                <p className="text-sm md:text-base text-gray-300">View your stats in the Dashboard: sessions hosted, sessions joined, and clubs you're part of. Watch your fitness community grow!</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Features Highlight */}
+        <div className="border-t border-gray-800 pt-12 md:pt-16 mb-12 md:mb-16">
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-6 md:mb-8 text-center">Powerful Features</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <div className="text-3xl mb-3">🤖</div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">AI Session Generator</h3>
+              <p className="text-sm md:text-base text-gray-300">Stuck for ideas? Describe what you want and Claude AI generates a complete session for you in seconds.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <div className="text-3xl mb-3">✨</div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">Smart Recommendations</h3>
+              <p className="text-sm md:text-base text-gray-300">Our algorithm suggests sessions based on your fitness level, location, and activity preferences.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <div className="text-3xl mb-3">📅</div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">3 Browse Views</h3>
+              <p className="text-sm md:text-base text-gray-300">Switch between List, Calendar, and Map views to find sessions the way you prefer.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <div className="text-3xl mb-3">👥</div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">Clubs & Communities</h3>
+              <p className="text-sm md:text-base text-gray-300">Create your own club or join existing ones. Organize regular sessions and build lasting training partnerships.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <div className="text-3xl mb-3">🔒</div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">Private Sessions</h3>
+              <p className="text-sm md:text-base text-gray-300">Create invite-only sessions where you approve participants - perfect for club-organized training.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <div className="text-3xl mb-3">📧</div>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">Email Notifications</h3>
+              <p className="text-sm md:text-base text-gray-300">Get notified when people join your sessions, leave comments, or when sessions are created.</p>
             </div>
           </div>
         </div>
@@ -148,27 +240,42 @@ export default function HowItWorks() {
           <div className="space-y-4 md:space-y-6 max-w-3xl mx-auto">
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
               <h3 className="text-lg md:text-xl font-bold text-white mb-2">Is Gruppetto free?</h3>
-              <p className="text-sm md:text-base text-gray-300">Yes! Gruppetto is completely free to use. Create and join as many sessions as you want.</p>
+              <p className="text-sm md:text-base text-gray-300">Yes! Gruppetto is completely free to use. Create and join as many sessions as you want, create clubs, and access all features at no cost.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">How do clubs work?</h3>
+              <p className="text-sm md:text-base text-gray-300">Each user can create one club. As a club founder or admin, you can create sessions specifically for your club, manage members, and build your community. Clubs need admin approval before going live.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">What's the difference between public and private sessions?</h3>
+              <p className="text-sm md:text-base text-gray-300">Public sessions let anyone join instantly. Private sessions require the host to approve join requests - perfect for club sessions or when you want to vet participants.</p>
             </div>
 
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
               <h3 className="text-lg md:text-xl font-bold text-white mb-2">What if I need to cancel?</h3>
-              <p className="text-sm md:text-base text-gray-300">Simply click "Leave" on the session page. The host and other participants will be notified.</p>
+              <p className="text-sm md:text-base text-gray-300">Simply click "Leave" on the session page. The host and other participants will be notified automatically via email.</p>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2">How does the recommendation system work?</h3>
+              <p className="text-sm md:text-base text-gray-300">Our smart algorithm analyzes your activity preferences, fitness level ratings, and location to suggest sessions that match your abilities. The more complete your profile, the better the recommendations!</p>
             </div>
 
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
               <h3 className="text-lg md:text-xl font-bold text-white mb-2">How do I know if someone is reliable?</h3>
-              <p className="text-sm md:text-base text-gray-300">Check their profile! You can see their fitness level, activities, and how many sessions they've hosted or joined.</p>
+              <p className="text-sm md:text-base text-gray-300">Check their profile! You can see their fitness level, preferred activities, and view their session history to see how active they are in the community.</p>
             </div>
 
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
               <h3 className="text-lg md:text-xl font-bold text-white mb-2">What areas does Gruppetto cover?</h3>
-              <p className="text-sm md:text-base text-gray-300">Currently focused on South West London (Battersea, Clapham, Chelsea, Wandsworth, Richmond). Expanding soon!</p>
+              <p className="text-sm md:text-base text-gray-300">Currently focused on South West London (Battersea, Clapham, Chelsea, Wandsworth, Richmond, Putney). Expanding soon!</p>
             </div>
 
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
               <h3 className="text-lg md:text-xl font-bold text-white mb-2">Can I bring a friend?</h3>
-              <p className="text-sm md:text-base text-gray-300">Absolutely! Just make sure they sign up on Gruppetto and join the session so the host knows how many people to expect.</p>
+              <p className="text-sm md:text-base text-gray-300">Absolutely! Just make sure they sign up on Gruppetto and join the session so the host knows the exact number of participants.</p>
             </div>
           </div>
         </div>
