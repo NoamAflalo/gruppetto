@@ -269,11 +269,6 @@ export default function HowItWorks() {
             </div>
 
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
-              <h3 className="text-lg md:text-xl font-bold text-white mb-2">What areas does Gruppetto cover?</h3>
-              <p className="text-sm md:text-base text-gray-300">Currently focused on South West London (Battersea, Clapham, Chelsea, Wandsworth, Richmond, Putney). Expanding soon!</p>
-            </div>
-
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6">
               <h3 className="text-lg md:text-xl font-bold text-white mb-2">Can I bring a friend?</h3>
               <p className="text-sm md:text-base text-gray-300">Absolutely! Just make sure they sign up on Gruppetto and join the session so the host knows the exact number of participants.</p>
             </div>
