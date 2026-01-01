@@ -258,6 +258,29 @@ export default function Navigation({ user }) {
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
+                    router.push('/create-club');
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.75rem 1rem',
+                    color: '#fff',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  👥 Create Club
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
                     router.push('/settings');
                   }}
                   style={{
@@ -460,6 +483,27 @@ export default function Navigation({ user }) {
                 }}
               >
                 👤 My Profile
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  router.push('/create-club');
+                }}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '1rem',
+                  background: '#111827',
+                  border: '1px solid #374151',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                👥 Create Club
               </button>
 
               <button

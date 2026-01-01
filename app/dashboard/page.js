@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, getDoc, doc, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
@@ -10,9 +10,10 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [clubs, setClubs] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loading, setLoading] = useState(true);
-  const [viewFilter, setViewFilter] = useState('participating'); // 'participating' or 'hosting'
+  const [viewFilter, setViewFilter] = useState('participating'); // 'participating', 'hosting', or 'clubs'
   const [timeFilter, setTimeFilter] = useState('upcoming'); // 'upcoming', 'past', 'all'
   const router = useRouter();
 
@@ -94,6 +95,33 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [user]);
 
+  // Fetch clubs
+  useEffect(() => {
+    const fetchClubs = async () => {
+      if (!user) return;
+
+      try {
+        // Fetch all approved clubs
+        const clubsQuery = query(
+          collection(db, 'clubs'),
+          where('status', '==', 'approved')
+        );
+        const snapshot = await getDocs(clubsQuery);
+        
+        // Filter clubs where user is a member
+        const clubsData = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(club => club.members?.includes(user.uid));
+        
+        setClubs(clubsData);
+      } catch (error) {
+        console.error('Error fetching clubs:', error);
+      }
+    };
+
+    fetchClubs();
+  }, [user]);
+
   // Filter sessions based on view and time
   const filteredSessions = sessions.filter(session => {
     const now = new Date();
@@ -162,7 +190,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* View Filter: Participating vs Hosting */}
+        {/* View Filter: Participating vs Hosting vs Clubs */}
         <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
           <button
             onClick={() => setViewFilter('participating')}
@@ -184,200 +212,291 @@ export default function Dashboard() {
           >
             🎤 Hosting
           </button>
-        </div>
-
-        {/* Time Filter: Upcoming vs Past vs All */}
-        <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto pb-2">
           <button
-            onClick={() => setTimeFilter('upcoming')}
+            onClick={() => setViewFilter('clubs')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              timeFilter === 'upcoming' 
-                ? 'bg-green-500 text-white' 
+              viewFilter === 'clubs' 
+                ? 'bg-orange-500 text-white' 
                 : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
             }`}
           >
-            📅 Upcoming
-          </button>
-          <button
-            onClick={() => setTimeFilter('past')}
-            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              timeFilter === 'past' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
-            }`}
-          >
-            📜 Past
-          </button>
-          <button
-            onClick={() => setTimeFilter('all')}
-            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              timeFilter === 'all' 
-                ? 'bg-purple-500 text-white' 
-                : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
-            }`}
-          >
-            🗂️ All
+            🏛️ My Clubs
           </button>
         </div>
 
-        {/* Sessions List */}
-        {sortedSessions.length === 0 ? (
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
-            <p className="text-gray-400 text-base md:text-lg mb-4">
-              {viewFilter === 'participating' 
-                ? "You haven't joined any sessions yet." 
-                : "You haven't hosted any sessions yet."}
-            </p>
+        {/* Time Filter: Only show for sessions, not clubs */}
+        {viewFilter !== 'clubs' && (
+          <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto pb-2">
             <button
-              onClick={() => router.push(viewFilter === 'participating' ? '/browse' : '/create')}
-              className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
+              onClick={() => setTimeFilter('upcoming')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                timeFilter === 'upcoming' 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
             >
-              {viewFilter === 'participating' ? 'Browse Sessions' : 'Create Session'}
+              📅 Upcoming
+            </button>
+            <button
+              onClick={() => setTimeFilter('past')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                timeFilter === 'past' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
+            >
+              📜 Past
+            </button>
+            <button
+              onClick={() => setTimeFilter('all')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                timeFilter === 'all' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
+            >
+              🗂️ All
             </button>
           </div>
-        ) : (
-          <div className="grid gap-4 md:gap-6">
-            {sortedSessions.map((session) => {
-              const isHost = session.host_user_id === user.uid;
-              const participantCount = session.participants?.length || 0;
-              const hostProfile = profiles[session.host_user_id];
-              const isPast = new Date(`${session.date}T${session.time}`) < new Date();
-              
-              return (
-                <div 
-                  key={session.id}
-                  className={`bg-gray-900 rounded-xl border p-4 md:p-8 hover:border-orange-500/50 transition cursor-pointer ${
-                    isPast ? 'opacity-60' : ''
-                  }`}
-                  onClick={() => router.push(`/session/${session.id}`)}
+        )}
+
+        {/* Clubs View */}
+        {viewFilter === 'clubs' && (
+          <div>
+            {clubs.length === 0 ? (
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
+                <p className="text-gray-400 text-base md:text-lg mb-4">
+                  You haven't joined any clubs yet.
+                </p>
+                <button
+                  onClick={() => router.push('/browse?view=clubs')}
+                  className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
                 >
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
-                        <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
-                        <h2 className="text-xl md:text-3xl font-bold text-white">{session.title}</h2>
-                        <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
-                          {session.intensity}
-                        </span>
-                        {isHost && (
-                          <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                            🎤 Host
-                          </span>
+                  Browse Clubs
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {clubs.map((club) => {
+                  const isFounder = club.founder_id === user.uid;
+                  
+                  return (
+                    <div
+                      key={club.id}
+                      onClick={() => router.push(`/club/${club.id}`)}
+                      className="bg-gray-900 rounded-xl border border-gray-800 p-6 hover:border-orange-500/50 transition cursor-pointer"
+                    >
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        {club.coverImage && (
+                          <img 
+                            src={club.coverImage} 
+                            alt={club.name}
+                            className="w-full lg:w-48 h-32 object-cover rounded-lg"
+                          />
                         )}
-                        {isPast && (
-                          <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gray-500/20 text-gray-400 border border-gray-500/30">
-                            ⏱️ Past
-                          </span>
-                        )}
-                        {session.isPrivate && (
-                          <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                            🔒 Private
-                          </span>
-                        )}
-                      </div>
-                      
-                      <p className="text-gray-400 mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm md:text-base text-gray-300 mb-3 md:mb-4">
-                        <div>📅 <strong>Date:</strong> {session.date}</div>
-                        <div>🕐 <strong>Time:</strong> {session.time}</div>
-                        <div className="sm:col-span-2">📍 <strong>Location:</strong> {session.location}</div>
-                        {session.distance && <div>📏 <strong>Distance:</strong> {session.distance}</div>}
-                      </div>
-                      
-                      {/* Host Profile */}
-                      {!isHost && (
-                        <div 
-                          className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 hover:bg-gray-800 p-2 md:p-3 rounded-lg inline-flex transition"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/profile/${session.host_user_id}`);
-                          }}
-                        >
-                          {hostProfile?.profileImage ? (
-                            <img 
-                              src={hostProfile.profileImage} 
-                              alt={hostProfile.displayName}
-                              className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 flex items-center justify-center text-lg md:text-xl border-2 border-orange-500">
-                              👤
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-xs md:text-sm font-semibold text-white">
-                              Hosted by {hostProfile?.displayName || session.host_email}
-                            </p>
-                            {hostProfile?.fitnessLevel && (
-                              <p className="text-xs text-gray-500 capitalize">{hostProfile.fitnessLevel}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h3 className="text-2xl font-bold text-white">{club.name}</h3>
+                            {club.isFeatured && (
+                              <span className="px-2 py-1 bg-orange-500 text-white rounded text-xs font-bold">
+                                ✓ VERIFIED
+                              </span>
+                            )}
+                            {isFounder && (
+                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-xs font-bold">
+                                ★ Founder
+                              </span>
                             )}
                           </div>
+                          <div className="space-y-1 text-sm mb-4">
+                            <p className="text-gray-300">
+                              {getActivityEmoji(club.activity_type)} {club.activity_type.charAt(0).toUpperCase() + club.activity_type.slice(1)}
+                            </p>
+                            <p className="text-gray-300">📍 {club.location}</p>
+                            <p className="text-gray-300">👥 {club.member_count || 1} members</p>
+                          </div>
+                          <p className="text-gray-400 mb-4 line-clamp-2">{club.description}</p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/club/${club.id}`);
+                            }}
+                            className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-semibold transition"
+                          >
+                            View Club
+                          </button>
                         </div>
-                      )}
-                      
-                      {/* Participants */}
-                      <div className="mb-2">
-                        <p className="text-xs md:text-sm font-semibold text-gray-300 mb-2 md:mb-3">
-                          👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
-                          {session.max_participants && ` (max: ${session.max_participants})`}
-                        </p>
-                        {participantCount > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {session.participants?.slice(0, 5).map((participantId) => {
-                              const profile = profiles[participantId];
-                              return (
-                                <div
-                                  key={participantId}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/profile/${participantId}`);
-                                  }}
-                                  className="cursor-pointer hover:scale-110 transition"
-                                  title={profile?.displayName || 'User'}
-                                >
-                                  {profile?.profileImage ? (
-                                    <img 
-                                      src={profile.profileImage} 
-                                      alt={profile.displayName}
-                                      className="rounded-full object-cover border-2 border-gray-700 hover:border-orange-500"
-                                      style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
-                                    />
-                                  ) : (
-                                    <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs md:text-sm border-2 border-gray-700 hover:border-orange-500"
-                                         style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
-                                      👤
-                                    </div>
-                                  )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sessions List */}
+        {viewFilter !== 'clubs' && (
+          <>
+            {sortedSessions.length === 0 ? (
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
+                <p className="text-gray-400 text-base md:text-lg mb-4">
+                  {viewFilter === 'participating' 
+                    ? "You haven't joined any sessions yet." 
+                    : "You haven't hosted any sessions yet."}
+                </p>
+                <button
+                  onClick={() => router.push(viewFilter === 'participating' ? '/browse' : '/create')}
+                  className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
+                >
+                  {viewFilter === 'participating' ? 'Browse Sessions' : 'Create Session'}
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:gap-6">
+                {sortedSessions.map((session) => {
+                  const isHost = session.host_user_id === user.uid;
+                  const participantCount = session.participants?.length || 0;
+                  const hostProfile = profiles[session.host_user_id];
+                  const isPast = new Date(`${session.date}T${session.time}`) < new Date();
+                  
+                  return (
+                    <div 
+                      key={session.id}
+                      className={`bg-gray-900 rounded-xl border p-4 md:p-8 hover:border-orange-500/50 transition cursor-pointer ${
+                        isPast ? 'opacity-60' : ''
+                      }`}
+                      onClick={() => router.push(`/session/${session.id}`)}
+                    >
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
+                            <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
+                            <h2 className="text-xl md:text-3xl font-bold text-white">{session.title}</h2>
+                            <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
+                              {session.intensity}
+                            </span>
+                            {isHost && (
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                🎤 Host
+                              </span>
+                            )}
+                            {isPast && (
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                                ⏱️ Past
+                              </span>
+                            )}
+                            {session.isPrivate && (
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                🔒 Private
+                              </span>
+                            )}
+                          </div>
+                          
+                          <p className="text-gray-400 mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm md:text-base text-gray-300 mb-3 md:mb-4">
+                            <div>📅 <strong>Date:</strong> {session.date}</div>
+                            <div>🕐 <strong>Time:</strong> {session.time}</div>
+                            <div className="sm:col-span-2">📍 <strong>Location:</strong> {session.location}</div>
+                            {session.distance && <div>📏 <strong>Distance:</strong> {session.distance}</div>}
+                          </div>
+                          
+                          {/* Host Profile */}
+                          {!isHost && (
+                            <div 
+                              className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 hover:bg-gray-800 p-2 md:p-3 rounded-lg inline-flex transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/profile/${session.host_user_id}`);
+                              }}
+                            >
+                              {hostProfile?.profileImage ? (
+                                <img 
+                                  src={hostProfile.profileImage} 
+                                  alt={hostProfile.displayName}
+                                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 flex items-center justify-center text-lg md:text-xl border-2 border-orange-500">
+                                  👤
                                 </div>
-                              );
-                            })}
-                            {participantCount > 5 && (
-                              <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-400 border-2 border-gray-700"
-                                   style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
-                                +{participantCount - 5}
+                              )}
+                              <div>
+                                <p className="text-xs md:text-sm font-semibold text-white">
+                                  Hosted by {hostProfile?.displayName || session.host_email}
+                                </p>
+                                {hostProfile?.fitnessLevel && (
+                                  <p className="text-xs text-gray-500 capitalize">{hostProfile.fitnessLevel}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Participants */}
+                          <div className="mb-2">
+                            <p className="text-xs md:text-sm font-semibold text-gray-300 mb-2 md:mb-3">
+                              👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
+                              {session.max_participants && ` (max: ${session.max_participants})`}
+                            </p>
+                            {participantCount > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {session.participants?.slice(0, 5).map((participantId) => {
+                                  const profile = profiles[participantId];
+                                  return (
+                                    <div
+                                      key={participantId}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/profile/${participantId}`);
+                                      }}
+                                      className="cursor-pointer hover:scale-110 transition"
+                                      title={profile?.displayName || 'User'}
+                                    >
+                                      {profile?.profileImage ? (
+                                        <img 
+                                          src={profile.profileImage} 
+                                          alt={profile.displayName}
+                                          className="rounded-full object-cover border-2 border-gray-700 hover:border-orange-500"
+                                          style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
+                                        />
+                                      ) : (
+                                        <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs md:text-sm border-2 border-gray-700 hover:border-orange-500"
+                                             style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
+                                          👤
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                {participantCount > 5 && (
+                                  <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-400 border-2 border-gray-700"
+                                       style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
+                                    +{participantCount - 5}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
-                        )}
+                        </div>
+                        
+                        {/* View Details Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/session/${session.id}`);
+                          }}
+                          className="w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition bg-orange-500 text-white hover:bg-orange-600"
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
-                    
-                    {/* View Details Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/session/${session.id}`);
-                      }}
-                      className="w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

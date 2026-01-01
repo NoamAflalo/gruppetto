@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
@@ -14,7 +14,7 @@ export default function Sessions() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('list'); // 'list', 'map', or 'calendar'
+  const [viewMode, setViewMode] = useState('list'); // 'list', 'map', 'calendar', or 'clubs'
   const [selectedSession, setSelectedSession] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -25,6 +25,10 @@ export default function Sessions() {
     intensities: [],
     location: '',
   });
+  
+  // Clubs state
+  const [clubs, setClubs] = useState([]);
+  const [loadingClubs, setLoadingClubs] = useState(false);
     
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -96,6 +100,34 @@ export default function Sessions() {
     });
 
     return () => unsubscribe();
+  }, [user]);
+
+  // Fetch clubs
+  const fetchClubs = async () => {
+    setLoadingClubs(true);
+    try {
+      const clubsQuery = query(
+        collection(db, 'clubs'),
+        where('status', '==', 'approved')
+      );
+      const snapshot = await getDocs(clubsQuery);
+      const clubsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setClubs(clubsData);
+    } catch (error) {
+      console.error('Error fetching clubs:', error);
+    } finally {
+      setLoadingClubs(false);
+    }
+  };
+
+  // Fetch clubs on mount
+  useEffect(() => {
+    if (user) {
+      fetchClubs();
+    }
   }, [user]);
 
   const handleJoinSession = async (sessionId, currentParticipants) => {
@@ -275,14 +307,14 @@ export default function Sessions() {
     return filteredSessions.filter(s => s.date === dateStr);
   };
 
-    const getActivityEmoji = (type) => {
-      switch(type) {
-        case 'running': return '🏃';
-        case 'cycling': return '🚴';
-        case 'swimming': return '🏊';
-        default: return '💪';
-      }
-    };
+  const getActivityEmoji = (type) => {
+    switch(type) {
+      case 'running': return '🏃';
+      case 'cycling': return '🚴';
+      case 'swimming': return '🏊';
+      default: return '💪';
+    }
+  };
 
   const getIntensityColor = (intensity) => {
     switch(intensity) {
@@ -407,6 +439,10 @@ export default function Sessions() {
     }, 100);
   };
 
+  // Separate featured and regular clubs
+  const featuredClubs = clubs.filter(c => c.isFeatured);
+  const regularClubs = clubs.filter(c => !c.isFeatured);
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
   }
@@ -455,56 +491,68 @@ export default function Sessions() {
           >
             📅 Calendar
           </button>
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
           <button
-            onClick={() => setFilter('all')}
+            onClick={() => setViewMode('clubs')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              filter === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              viewMode === 'clubs' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
             }`}
           >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('running')}
-            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              filter === 'running' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
-            }`}
-          >
-            🏃 Running
-          </button>
-          <button
-            onClick={() => setFilter('cycling')}
-            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              filter === 'cycling' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
-            }`}
-          >
-            🚴 Cycling
-          </button>
-          <button
-            onClick={() => setFilter('swimming')}
-            className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              filter === 'swimming' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
-            }`}
-          >
-            🏊 Swimming
+            👥 Clubs
           </button>
         </div>
 
-        {/* Advanced Filters Toggle */}
-        <div className="mb-6">
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="text-orange-500 font-semibold hover:text-orange-400 transition flex items-center gap-2"
-          >
-            {showAdvancedFilters ? '▼' : '▶'} Advanced Filters
-          </button>
-        </div>
+        {/* Filter Buttons - Only show for sessions views */}
+        {viewMode !== 'clubs' && (
+          <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                filter === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('running')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                filter === 'running' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
+            >
+              🏃 Running
+            </button>
+            <button
+              onClick={() => setFilter('cycling')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                filter === 'cycling' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
+            >
+              🚴 Cycling
+            </button>
+            <button
+              onClick={() => setFilter('swimming')}
+              className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                filter === 'swimming' ? 'bg-orange-500 text-white' : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+              }`}
+            >
+              🏊 Swimming
+            </button>
+          </div>
+        )}
+
+        {/* Advanced Filters Toggle - Only for sessions views */}
+        {viewMode !== 'clubs' && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="text-orange-500 font-semibold hover:text-orange-400 transition flex items-center gap-2"
+            >
+              {showAdvancedFilters ? '▼' : '▶'} Advanced Filters
+            </button>
+          </div>
+        )}
 
         {/* Advanced Filters Panel */}
-        {showAdvancedFilters && (
+        {showAdvancedFilters && viewMode !== 'clubs' && (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 md:p-6 mb-6 md:mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               
@@ -611,6 +659,120 @@ export default function Sessions() {
                 Clear all filters
               </button>
             </div>
+          </div>
+        )}
+
+        {/* CLUBS VIEW */}
+        {viewMode === 'clubs' && (
+          <div>
+            {loadingClubs ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400">Loading clubs...</p>
+              </div>
+            ) : clubs.length === 0 ? (
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
+                <p className="text-gray-400 text-base md:text-lg">No clubs available yet. Be the first to create one!</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {/* Featured Clubs */}
+                {featuredClubs.length > 0 && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-4">✨ Featured Clubs</h2>
+                    <div className="grid gap-6">
+                      {featuredClubs.map((club) => (
+                        <div
+                          key={club.id}
+                          onClick={() => router.push(`/club/${club.id}`)}
+                          className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-2 border-orange-500/50 rounded-xl p-6 hover:border-orange-500 transition cursor-pointer"
+                        >
+                          <div className="flex flex-col lg:flex-row gap-6">
+                            {club.coverImage && (
+                              <img 
+                                src={club.coverImage} 
+                                alt={club.name}
+                                className="w-full lg:w-64 h-48 object-cover rounded-lg"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-2xl font-bold text-white">{club.name}</h3>
+                                <span className="px-2 py-1 bg-orange-500 text-white rounded text-xs font-bold">
+                                  ✓ VERIFIED
+                                </span>
+                              </div>
+                              <div className="space-y-1 text-sm mb-4">
+                                <p className="text-gray-300">
+                                  {getActivityEmoji(club.activity_type)} {club.activity_type.charAt(0).toUpperCase() + club.activity_type.slice(1)}
+                                </p>
+                                <p className="text-gray-300">📍 {club.location}</p>
+                                <p className="text-gray-300">👥 {club.member_count || 1} members</p>
+                              </div>
+                              <p className="text-gray-400 mb-4 line-clamp-2">{club.description}</p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/club/${club.id}`);
+                                }}
+                                className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-semibold transition"
+                              >
+                                View Club
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* All Clubs */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">
+                    {featuredClubs.length > 0 ? 'All Clubs' : 'Clubs'}
+                  </h2>
+                  <div className="grid gap-6">
+                    {regularClubs.map((club) => (
+                      <div
+                        key={club.id}
+                        onClick={() => router.push(`/club/${club.id}`)}
+                        className="bg-gray-900 rounded-xl border border-gray-800 p-6 hover:border-orange-500/50 transition cursor-pointer"
+                      >
+                        <div className="flex flex-col lg:flex-row gap-6">
+                          {club.coverImage && (
+                            <img 
+                              src={club.coverImage} 
+                              alt={club.name}
+                              className="w-full lg:w-64 h-48 object-cover rounded-lg"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="text-2xl font-bold text-white mb-2">{club.name}</h3>
+                            <div className="space-y-1 text-sm mb-4">
+                              <p className="text-gray-300">
+                                {getActivityEmoji(club.activity_type)} {club.activity_type.charAt(0).toUpperCase() + club.activity_type.slice(1)}
+                              </p>
+                              <p className="text-gray-300">📍 {club.location}</p>
+                              <p className="text-gray-300">👥 {club.member_count || 1} members</p>
+                            </div>
+                            <p className="text-gray-400 mb-4 line-clamp-2">{club.description}</p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/club/${club.id}`);
+                              }}
+                              className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-semibold transition"
+                            >
+                              View Club
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

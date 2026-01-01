@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
@@ -15,6 +15,8 @@ export default function CreateSession() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [clubs, setClubs] = useState([]);
+  const [selectedClub, setSelectedClub] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -41,6 +43,34 @@ export default function CreateSession() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // Fetch clubs where user is admin
+  useEffect(() => {
+    const fetchMyClubs = async () => {
+      if (!user) return;
+
+      try {
+        const clubsQuery = query(
+          collection(db, 'clubs'),
+          where('status', '==', 'approved')
+        );
+        const snapshot = await getDocs(clubsQuery);
+        
+        // Filter clubs where user is founder OR admin
+        const myAdminClubs = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(club => 
+            club.founder_id === user.uid || club.admins?.includes(user.uid)
+          );
+        
+        setClubs(myAdminClubs);
+      } catch (error) {
+        console.error('Error fetching clubs:', error);
+      }
+    };
+
+    fetchMyClubs();
+  }, [user]);
 
   const handleAIGenerate = async () => {
     if (!aiPrompt.trim()) {
@@ -91,7 +121,6 @@ export default function CreateSession() {
     const now = new Date();
 
     if (sessionDateTime < now) {
-      // ✅ Compare DATE + HEURE
       setToast({ message: 'You cannot create a session in the past', type: 'error' });
       return;
     }
@@ -125,6 +154,12 @@ export default function CreateSession() {
         created_at: serverTimestamp(),
       };
 
+      // Add club_id if a club is selected
+      if (selectedClub) {
+        sessionData.club_id = selectedClub;
+        sessionData.is_club_session = true;
+      }
+
       if (formData.isPrivate) {
         sessionData.joinRequests = [];
       }
@@ -152,7 +187,13 @@ export default function CreateSession() {
       }
       
       setToast({ message: 'Session created successfully!', type: 'success' });
-      setTimeout(() => router.push('/browse'), 1500);
+      
+      // Redirect to club page if session is linked to a club
+      if (selectedClub) {
+        setTimeout(() => router.push(`/club/${selectedClub}`), 1500);
+      } else {
+        setTimeout(() => router.push('/browse'), 1500);
+      }
     } catch (error) {
       console.error('Error creating session:', error);
       setToast({ message: 'Error creating session. Please try again.', type: 'error' });
@@ -164,6 +205,15 @@ export default function CreateSession() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const getActivityEmoji = (type) => {
+    switch(type) {
+      case 'running': return '🏃';
+      case 'cycling': return '🚴';
+      case 'swimming': return '🏊';
+      default: return '💪';
+    }
   };
 
   if (loading) {
@@ -191,6 +241,30 @@ export default function CreateSession() {
 
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 space-y-4 md:space-y-6">
           
+          {/* Link to Club (Optional) */}
+          {clubs.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-4 md:p-6">
+              <label className="block text-sm font-semibold text-white mb-3">
+                🏛️ Link to Club (Optional)
+              </label>
+              <select
+                value={selectedClub}
+                onChange={(e) => setSelectedClub(e.target.value)}
+                className="w-full p-3 md:p-4 bg-black border border-purple-500/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
+              >
+                <option value="">No club (Personal session)</option>
+                {clubs.map((club) => (
+                  <option key={club.id} value={club.id}>
+                    {getActivityEmoji(club.activity_type)} {club.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-purple-400 mt-2">
+                💡 Create this session for one of your clubs. Only clubs where you're an admin are shown.
+              </p>
+            </div>
+          )}
+
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Session Title *</label>
@@ -414,7 +488,7 @@ export default function CreateSession() {
               type="submit"
               className="w-full bg-orange-500 text-white py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-orange-600 transition"
             >
-              Create Session
+              {selectedClub ? 'Create Club Session' : 'Create Session'}
             </button>
           </div>
         </form>
