@@ -380,7 +380,7 @@ export default function Sessions() {
         }}
         style={{
           aspectRatio: '1',
-          padding: '1rem',
+          padding: '0.5rem',
           background: hasSessions ? '#1f2937' : '#0a0a0a',
           border: isTodayDay ? '3px solid #f97316' : (isSelectedDay ? '2px solid #f97316' : (hasSessions ? '2px solid #374151' : '2px solid #1f1f1f')),
           borderRadius: '0.75rem',
@@ -789,7 +789,7 @@ export default function Sessions() {
         {/* CALENDAR VIEW */}
         {viewMode === 'calendar' && (
           <div className="mb-8">
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-2 md:p-6 mb-6">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-1 md:p-6 mb-6">
               <div className="flex items-center justify-between mb-6">
                 <button
                   onClick={goToPreviousMonth}
@@ -1164,18 +1164,7 @@ export default function Sessions() {
 
         @media (max-width: 768px) {
           .calendar-grid {
-            gap: 0.3rem;
-          }
-
-          .calendar-header {
-            font-size: 0.625rem;
-            padding: 0.5rem 0.125rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .calendar-grid {
-            gap: 0.2rem;
+            gap: 0.15rem;
           }
 
           .calendar-header {
