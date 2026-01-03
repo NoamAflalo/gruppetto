@@ -409,17 +409,17 @@ export default function Sessions() {
         {hasSessions && (
           <div style={{
             position: 'absolute',
-            top: '0.375rem',
-            left: '0.375rem',
+            top: '0.25rem',
+            left: '0.25rem',
             background: '#f97316',
             color: '#fff',
             borderRadius: '9999px',
-            width: '1.5rem',
-            height: '1.5rem',
+            width: '1.15rem',
+            height: '1.15rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '0.75rem',
+            fontSize: '0.625rem',
             fontWeight: '700',
             boxShadow: '0 2px 8px rgba(249, 115, 22, 0.4)',
           }}>
