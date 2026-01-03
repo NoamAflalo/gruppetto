@@ -380,7 +380,7 @@ export default function Sessions() {
         }}
         style={{
           aspectRatio: '1',
-          padding: window.innerWidth < 768 ? '0.5rem' : '1rem',
+          padding: '1rem',
           background: hasSessions ? '#1f2937' : '#0a0a0a',
           border: isTodayDay ? '3px solid #f97316' : (isSelectedDay ? '2px solid #f97316' : (hasSessions ? '2px solid #374151' : '2px solid #1f1f1f')),
           borderRadius: '0.75rem',
