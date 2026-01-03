@@ -345,8 +345,10 @@ export default function CreateSession() {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
+                onKeyDown={(e) => e.preventDefault()}
+                onClick={(e) => e.target.showPicker?.()}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark]"
+                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark] cursor-pointer"
                 required
               />
             </div>
@@ -357,7 +359,14 @@ export default function CreateSession() {
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark]"
+                onKeyDown={(e) => e.preventDefault()}
+                onClick={(e) => e.target.showPicker?.()}
+                min={
+                  formData.date === new Date().toISOString().split('T')[0]
+                    ? new Date().toTimeString().slice(0, 5)
+                    : undefined
+                }
+                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark] cursor-pointer"
                 required
               />
             </div>
