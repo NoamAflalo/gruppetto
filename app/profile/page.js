@@ -12,20 +12,23 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [stravaConnected, setStravaConnected] = useState(false);
-  const [stravaData, setStravaData] = useState(null);
+  // STRAVA - États commentés
+  // const [stravaConnected, setStravaConnected] = useState(false);
+  // const [stravaData, setStravaData] = useState(null);
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
+    gender: '', // NOUVEAU
     fitnessLevel: '',
     activities: [],
     preferredPace: '',
     location: '',
     profileImage: '',
-    stravaLink: '',
-    stravaId: '',
-    stravaVerified: false,
-    stravaUsername: '',
+    // STRAVA - Champs commentés
+    // stravaLink: '',
+    // stravaId: '',
+    // stravaVerified: false,
+    // stravaUsername: '',
     goals: '',
     ratings: {
       running: 0,
@@ -63,58 +66,58 @@ export default function Profile() {
     return () => unsubscribe();
   }, [router]);
 
-  // Handle Strava OAuth callback
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const params = new URLSearchParams(window.location.search);
-    const stravaId = params.get('strava_id');
-    const stravaUsername = params.get('strava_username');
-    const stravaFirstname = params.get('strava_firstname');
-    const stravaLastname = params.get('strava_lastname');
-    const stravaError = params.get('strava_error');
+  // STRAVA - Handle Strava OAuth callback - COMMENTÉ
+  // useEffect(() => {
+  //   if (typeof window === 'undefined') return;
+  //   
+  //   const params = new URLSearchParams(window.location.search);
+  //   const stravaId = params.get('strava_id');
+  //   const stravaUsername = params.get('strava_username');
+  //   const stravaFirstname = params.get('strava_firstname');
+  //   const stravaLastname = params.get('strava_lastname');
+  //   const stravaError = params.get('strava_error');
+  //
+  //   if (stravaError) {
+  //     alert('Strava connection failed. Please try again.');
+  //     // Clean URL
+  //     window.history.replaceState({}, '', '/profile');
+  //     return;
+  //   }
+  //
+  //   if (stravaId) {
+  //     const data = {
+  //       id: stravaId,
+  //       username: stravaUsername,
+  //       firstname: stravaFirstname,
+  //       lastname: stravaLastname,
+  //     };
+  //     
+  //     setStravaData(data);
+  //     setStravaConnected(true);
+  //     setFormData(prev => ({
+  //       ...prev,
+  //       stravaLink: `https://www.strava.com/athletes/${stravaId}`,
+  //       stravaId: stravaId,
+  //       stravaVerified: true,
+  //       stravaUsername: stravaUsername,
+  //     }));
+  //
+  //     // Clean URL
+  //     window.history.replaceState({}, '', '/profile');
+  //   }
+  // }, []);
 
-    if (stravaError) {
-      alert('Strava connection failed. Please try again.');
-      // Clean URL
-      window.history.replaceState({}, '', '/profile');
-      return;
-    }
-
-    if (stravaId) {
-      const data = {
-        id: stravaId,
-        username: stravaUsername,
-        firstname: stravaFirstname,
-        lastname: stravaLastname,
-      };
-      
-      setStravaData(data);
-      setStravaConnected(true);
-      setFormData(prev => ({
-        ...prev,
-        stravaLink: `https://www.strava.com/athletes/${stravaId}`,
-        stravaId: stravaId,
-        stravaVerified: true,
-        stravaUsername: stravaUsername,
-      }));
-
-      // Clean URL
-      window.history.replaceState({}, '', '/profile');
-    }
-  }, []);
-
-  // Check if Strava is already connected
-  useEffect(() => {
-    if (formData.stravaId && formData.stravaVerified) {
-      setStravaConnected(true);
-      setStravaData({
-        id: formData.stravaId,
-        username: formData.stravaUsername || '',
-        firstname: formData.displayName || '',
-      });
-    }
-  }, [formData.stravaId, formData.stravaVerified, formData.stravaUsername, formData.displayName]);
+  // STRAVA - Check if Strava is already connected - COMMENTÉ
+  // useEffect(() => {
+  //   if (formData.stravaId && formData.stravaVerified) {
+  //     setStravaConnected(true);
+  //     setStravaData({
+  //       id: formData.stravaId,
+  //       username: formData.stravaUsername || '',
+  //       firstname: formData.displayName || '',
+  //     });
+  //   }
+  // }, [formData.stravaId, formData.stravaVerified, formData.stravaUsername, formData.displayName]);
 
   // Fetch user stats
   useEffect(() => {
@@ -245,29 +248,31 @@ export default function Profile() {
     });
   };
 
-  const handleConnectStrava = () => {
-  const clientId = '192146';
-  const redirectUri = `${window.location.origin}/api/strava/callback`;
-  const scope = 'read,activity:read';
-  
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
-  
-  window.location.href = authUrl;
-};
+  // STRAVA - handleConnectStrava - COMMENTÉ
+  // const handleConnectStrava = () => {
+  //   const clientId = '192146';
+  //   const redirectUri = `${window.location.origin}/api/strava/callback`;
+  //   const scope = 'read,activity:read';
+  //   
+  //   const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+  //   
+  //   window.location.href = authUrl;
+  // };
 
-  const handleDisconnectStrava = () => {
-    if (!confirm('Disconnect your Strava account?')) return;
-    
-    setStravaConnected(false);
-    setStravaData(null);
-    setFormData({
-      ...formData,
-      stravaLink: '',
-      stravaId: '',
-      stravaVerified: false,
-      stravaUsername: '',
-    });
-  };
+  // STRAVA - handleDisconnectStrava - COMMENTÉ
+  // const handleDisconnectStrava = () => {
+  //   if (!confirm('Disconnect your Strava account?')) return;
+  //   
+  //   setStravaConnected(false);
+  //   setStravaData(null);
+  //   setFormData({
+  //     ...formData,
+  //     stravaLink: '',
+  //     stravaId: '',
+  //     stravaVerified: false,
+  //     stravaUsername: '',
+  //   });
+  // };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
@@ -424,6 +429,38 @@ export default function Profile() {
             />
           </div>
 
+          {/* NOUVEAU - Gender Selection */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-3">Gender</label>
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, gender: 'female' })}
+                className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition text-sm md:text-base ${
+                  formData.gender === 'female'
+                    ? 'bg-pink-500 border-pink-500 text-white'
+                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                }`}
+              >
+                👩 Female
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, gender: 'male' })}
+                className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition text-sm md:text-base ${
+                  formData.gender === 'male'
+                    ? 'bg-blue-500 border-blue-500 text-white'
+                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                }`}
+              >
+                👨 Male
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Required to access certain features like creating "Girls Only" sessions
+            </p>
+          </div>
+
           {/* Bio */}
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Bio</label>
@@ -451,8 +488,8 @@ export default function Profile() {
             <p className="text-xs text-gray-500 mt-2">Let others know what you're working towards!</p>
           </div>
 
-          {/* Strava Connection */}
-          <div>
+          {/* STRAVA - Strava Connection Section - COMMENTÉ */}
+          {/* <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Strava Profile</label>
             
             {stravaConnected ? (
@@ -509,7 +546,7 @@ export default function Profile() {
                 </button>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Fitness Level */}
           <div>

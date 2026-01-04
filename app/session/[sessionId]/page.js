@@ -6,22 +6,35 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../components/navigation';
 import SessionMap from '../../components/map';
+import Toast from '../../components/Toast';
 
 export default function SessionDetail() {
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null); // NOUVEAU
   const [session, setSession] = useState(null);
   const [profiles, setProfiles] = useState({});
   const [comments, setComments] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null); // NOUVEAU
   const router = useRouter();
   const params = useParams();
   const sessionId = params.sessionId;
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
+        
+        // NOUVEAU - Récupérer le profil de l'utilisateur connecté
+        try {
+          const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
+          if (profileDoc.exists()) {
+            setUserProfile(profileDoc.data());
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
       } else {
         router.push('/');
       }
@@ -131,6 +144,25 @@ export default function SessionDetail() {
   const handleRequestToJoin = async () => {
     if (!user || !session) return;
 
+    // NOUVEAU - Vérification Girls Only pour les requêtes privées
+    if (session.girlsOnly) {
+      if (!userProfile) {
+        setToast({ message: 'Please complete your profile first', type: 'error' });
+        return;
+      }
+
+      if (!userProfile.gender) {
+        setToast({ message: 'Please set your gender in your profile to join this session', type: 'warning' });
+        setTimeout(() => router.push('/profile'), 2000);
+        return;
+      }
+
+      if (userProfile.gender !== 'female') {
+        setToast({ message: 'This is a Girls Only session. Only women can join.', type: 'error' });
+        return;
+      }
+    }
+
     try {
       const sessionRef = doc(db, 'sessions', sessionId);
       const currentProfile = profiles[user.uid] || {};
@@ -147,6 +179,8 @@ export default function SessionDetail() {
       await updateDoc(sessionRef, {
         joinRequests: arrayUnion(newRequest)
       });
+
+      setToast({ message: 'Join request sent!', type: 'success' });
 
       // Envoyer email au créateur
       try {
@@ -171,6 +205,7 @@ export default function SessionDetail() {
 
     } catch (error) {
       console.error('Error requesting to join:', error);
+      setToast({ message: 'Error sending request', type: 'error' });
     }
   };
 
@@ -189,6 +224,8 @@ export default function SessionDetail() {
         joinRequests: arrayRemove(request),
         participants: arrayUnion(requestUserId)
       });
+
+      setToast({ message: 'Request approved!', type: 'success' });
 
       // Envoyer email à l'utilisateur approuvé
       try {
@@ -213,6 +250,7 @@ export default function SessionDetail() {
 
     } catch (error) {
       console.error('Error approving request:', error);
+      setToast({ message: 'Error approving request', type: 'error' });
     }
   };
 
@@ -231,13 +269,35 @@ export default function SessionDetail() {
         joinRequests: arrayRemove(request)
       });
 
+      setToast({ message: 'Request rejected', type: 'success' });
+
     } catch (error) {
       console.error('Error rejecting request:', error);
+      setToast({ message: 'Error rejecting request', type: 'error' });
     }
   };
 
   const handleJoinSession = async () => {
     if (!user || !session) return;
+
+    // NOUVEAU - Vérification Girls Only
+    if (session.girlsOnly && !isParticipant) {
+      if (!userProfile) {
+        setToast({ message: 'Please complete your profile first', type: 'error' });
+        return;
+      }
+
+      if (!userProfile.gender) {
+        setToast({ message: 'Please set your gender in your profile to join this session', type: 'warning' });
+        setTimeout(() => router.push('/profile'), 2000);
+        return;
+      }
+
+      if (userProfile.gender !== 'female') {
+        setToast({ message: 'This is a Girls Only session. Only women can join.', type: 'error' });
+        return;
+      }
+    }
 
     try {
       const sessionRef = doc(db, 'sessions', sessionId);
@@ -248,17 +308,21 @@ export default function SessionDetail() {
         await updateDoc(sessionRef, {
           participants: arrayRemove(user.uid)
         });
+
+        setToast({ message: 'You left the session', type: 'success' });
       } else {
         // Join session (session publique uniquement)
         await updateDoc(sessionRef, {
           participants: arrayUnion(user.uid)
         });
 
+        setToast({ message: 'Successfully joined the session!', type: 'success' });
+
         // Récupère la session MISE À JOUR
         const updatedSessionDoc = await getDoc(sessionRef);
         const updatedSession = updatedSessionDoc.data();
 
-        const currentProfile = profiles[user.uid] || {};
+        const currentProfile = profiles[user.uid] || userProfile || {};
 
         // 1. Send confirmation email to the user joining
         try {
@@ -345,19 +409,20 @@ export default function SessionDetail() {
       }
     } catch (error) {
       console.error('Error joining/leaving session:', error);
+      setToast({ message: 'Error processing your request', type: 'error' });
     }
   };
 
   const handleShareWhatsApp = () => {
     const message = `Join my ${session.activity_type} session!
 
-  ${session.title}
+${session.title}
 
-  Date: ${session.date} at ${session.time}
-  Location: ${session.location}
-  ${session.distance ? `Distance: ${session.distance}` : ''}
+Date: ${session.date} at ${session.time}
+Location: ${session.location}
+${session.distance ? `Distance: ${session.distance}` : ''}
 
-  Join here: ${window.location.href}`;
+Join here: ${window.location.href}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -436,13 +501,32 @@ export default function SessionDetail() {
                 <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
                   {session.intensity}
                 </span>
-                {/* NOUVEAU : Badge Private */}
+                {/* Badge Private */}
                 {session.isPrivate && (
                   <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                     🔒 Private
                   </span>
                 )}
+                {/* NOUVEAU - Badge Girls Only */}
+                {session.girlsOnly && (
+                  <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 text-pink-400">
+                    👭 Girls Only
+                  </span>
+                )}
               </div>
+
+              {/* NOUVEAU - Encadré Girls Only */}
+              {session.girlsOnly && (
+                <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl">👭</div>
+                    <div>
+                      <h3 className="text-pink-400 font-bold text-lg">Girls Only Session</h3>
+                      <p className="text-sm text-pink-300/80">This session is exclusively for women</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-lg leading-relaxed">{session.description}</p>
 
@@ -550,7 +634,7 @@ export default function SessionDetail() {
           </div>
         </div>
 
-        {/* NOUVEAU : Join Requests (visible uniquement pour le host) */}
+        {/* Join Requests (visible uniquement pour le host) */}
         {isHost && pendingRequests.length > 0 && (
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 mb-6 md:mb-8">
             <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">
@@ -728,6 +812,15 @@ export default function SessionDetail() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

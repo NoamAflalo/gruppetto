@@ -1,11 +1,320 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
 import SessionMap from '../components/map';
+import Toast from '../components/Toast';
+import { londonLocations, getPools, getNonPools } from '@/lib/londonLocations';
+
+// Composant LocationAutocomplete
+function LocationAutocomplete({ value, onChange, activityFilter, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(value || '');
+  const containerRef = useRef(null);
+
+  // Filtrer les lieux selon l'activité
+  const getFilteredLocations = () => {
+    if (activityFilter === 'swimming') {
+      return getPools();
+    }
+    // Pour les autres activités, on montre tout sauf les piscines par défaut
+    // Mais si "all" est sélectionné, on montre tout
+    if (activityFilter === 'all') {
+      return londonLocations;
+    }
+    return getNonPools();
+  };
+
+  const locations = getFilteredLocations();
+
+  // Filtrer par terme de recherche
+  const filteredLocations = locations.filter(loc =>
+    loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    loc.area.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Grouper par zone
+  const groupedLocations = filteredLocations.reduce((acc, loc) => {
+    if (!acc[loc.area]) {
+      acc[loc.area] = [];
+    }
+    acc[loc.area].push(loc);
+    return acc;
+  }, {});
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setSearchTerm(value || '');
+  }, [value]);
+
+  const handleSelect = (locationName) => {
+    setSearchTerm(locationName);
+    onChange(locationName);
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    setSearchTerm('');
+    onChange('');
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            onChange(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder || "Search location..."}
+          className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 pr-10"
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-2 w-full bg-gray-900 border border-gray-700 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+          {Object.keys(groupedLocations).length === 0 ? (
+            <div className="p-3 text-gray-500 text-sm">No locations found</div>
+          ) : (
+            Object.entries(groupedLocations).map(([area, locs]) => (
+              <div key={area}>
+                <div className="px-3 py-2 bg-gray-800 text-xs font-semibold text-gray-400 uppercase sticky top-0">
+                  {area}
+                </div>
+                {locs.map((loc) => (
+                  <button
+                    key={loc.name}
+                    type="button"
+                    onClick={() => handleSelect(loc.name)}
+                    className={`w-full px-3 py-2 text-left text-sm transition hover:bg-gray-800 flex items-center gap-2 ${
+                      searchTerm === loc.name ? 'bg-orange-500/20 text-orange-400' : 'text-gray-300'
+                    }`}
+                  >
+                    <span>{loc.type === 'pool' ? '🏊' : '📍'}</span>
+                    <span>{loc.name}</span>
+                  </button>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant DatePicker avec calendrier
+function DatePickerCalendar({ value, onChange, minDate, label, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
+  const containerRef = useRef(null);
+
+  const monthNames = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (value) {
+      setViewDate(new Date(value));
+    }
+  }, [value]);
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    return { daysInMonth, startingDayOfWeek };
+  };
+
+  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(viewDate);
+  const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+
+  const goToPreviousMonth = (e) => {
+    e.stopPropagation();
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = (e) => {
+    e.stopPropagation();
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  };
+
+  const selectDay = (day) => {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    onChange(dateStr);
+    setIsOpen(false);
+  };
+
+  const isDateDisabled = (day) => {
+    if (!minDate) return false;
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateStr < minDate;
+  };
+
+  const isSelectedDate = (day) => {
+    if (!value) return false;
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateStr === value;
+  };
+
+  const isToday = (day) => {
+    const today = new Date();
+    return day === today.getDate() &&
+           viewDate.getMonth() === today.getMonth() &&
+           viewDate.getFullYear() === today.getFullYear();
+  };
+
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return placeholder || 'Select date';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const calendarDays = [];
+  for (let i = 0; i < adjustedStartDay; i++) {
+    calendarDays.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const disabled = isDateDisabled(day);
+    const selected = isSelectedDate(day);
+    const today = isToday(day);
+
+    calendarDays.push(
+      <button
+        key={day}
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && selectDay(day)}
+        className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
+          selected
+            ? 'bg-orange-500 text-white'
+            : today
+              ? 'bg-orange-500/20 text-orange-400 border border-orange-500'
+              : disabled
+                ? 'text-gray-600 cursor-not-allowed'
+                : 'text-gray-300 hover:bg-gray-700'
+        }`}
+      >
+        {day}
+      </button>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      {label && <label className="block text-sm font-semibold text-gray-300 mb-2">{label}</label>}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-left flex items-center justify-between"
+      >
+        <span className={value ? 'text-white' : 'text-gray-500'}>
+          {formatDisplayDate(value)}
+        </span>
+        <span className="text-gray-400">📅</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-2 bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-xl min-w-[280px]">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={goToPreviousMonth}
+              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+            >
+              ←
+            </button>
+            <span className="font-semibold text-white">
+              {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+            </span>
+            <button
+              type="button"
+              onClick={goToNextMonth}
+              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+            >
+              →
+            </button>
+          </div>
+
+          {/* Days header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
+              <div key={d} className="w-8 h-6 text-center text-xs text-gray-500 font-medium">
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Days grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays}
+          </div>
+
+          {/* Today button */}
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const todayStr = today.toISOString().split('T')[0];
+              if (!minDate || todayStr >= minDate) {
+                onChange(todayStr);
+                setIsOpen(false);
+              }
+            }}
+            className="w-full mt-3 py-2 text-sm text-orange-500 hover:text-orange-400 font-medium"
+          >
+            Today
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Sessions() {
   const [user, setUser] = useState(null);
@@ -18,12 +327,14 @@ export default function Sessions() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [toast, setToast] = useState(null);
   const [advancedFilters, setAdvancedFilters] = useState({
     dateFrom: '',
     dateTo: '',
     specificDate: new Date().toISOString().split('T')[0], // Pour Map View
     intensities: [],
     location: '',
+    girlsOnly: false,
   });
   
   // Clubs state
@@ -35,6 +346,23 @@ export default function Sessions() {
   const [selectedDay, setSelectedDay] = useState(null);
   
   const router = useRouter();
+
+  // Check if user is female
+  const isUserFemale = userProfile?.gender === 'female';
+
+  // Reset location filter when activity filter changes
+  useEffect(() => {
+    if (advancedFilters.location) {
+      const pools = getPools().map(p => p.name.toLowerCase());
+      const isCurrentLocationPool = pools.includes(advancedFilters.location.toLowerCase());
+      
+      // If switching to swimming and current location is not a pool, clear it
+      if (filter === 'swimming' && !isCurrentLocationPool) {
+        setAdvancedFilters(prev => ({ ...prev, location: '' }));
+      }
+      // If switching away from swimming and current location is a pool, keep it (pools are valid for other activities too)
+    }
+  }, [filter]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -48,7 +376,7 @@ export default function Sessions() {
     return () => unsubscribe();
   }, [router]);
 
-  // Fetch user profile for recommendations
+  // Fetch user profile for recommendations AND gender verification
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
@@ -136,16 +464,38 @@ export default function Sessions() {
       const sessionDoc = await getDoc(sessionRef);
       const sessionData = sessionDoc.data();
       
+      // Vérification Girls Only
+      if (sessionData.girlsOnly && !currentParticipants.includes(user.uid)) {
+        if (!userProfile) {
+          setToast({ message: 'Please complete your profile first', type: 'error' });
+          return;
+        }
+
+        if (!userProfile.gender) {
+          setToast({ message: 'Please set your gender in your profile to join this session', type: 'warning' });
+          setTimeout(() => router.push('/profile'), 2000);
+          return;
+        }
+
+        if (userProfile.gender !== 'female') {
+          setToast({ message: 'This is a Girls Only session. Only women can join.', type: 'error' });
+          return;
+        }
+      }
+      
       if (currentParticipants.includes(user.uid)) {
         await updateDoc(sessionRef, {
           participants: arrayRemove(user.uid)
         });
+        setToast({ message: 'You left the session', type: 'success' });
       } else {
         await updateDoc(sessionRef, {
           participants: arrayUnion(user.uid)
         });
         
-        const currentProfile = profiles[user.uid] || {};
+        setToast({ message: 'Successfully joined the session!', type: 'success' });
+        
+        const currentProfile = profiles[user.uid] || userProfile || {};
         
         try {
           await fetch('/api/send-notification', {
@@ -170,6 +520,7 @@ export default function Sessions() {
       }
     } catch (error) {
       console.error('Error joining/leaving session:', error);
+      setToast({ message: 'Error processing your request', type: 'error' });
     }
   };
 
@@ -195,6 +546,15 @@ export default function Sessions() {
     
     if (advancedFilters.intensities.length > 0 && !advancedFilters.intensities.includes(session.intensity)) return false;
     if (advancedFilters.location && !session.location.toLowerCase().includes(advancedFilters.location.toLowerCase())) return false;
+    
+    // Filtre Girls Only - Ne pas montrer les sessions Girls Only aux non-femmes
+    // sauf si elles y participent déjà
+    if (session.girlsOnly && !isUserFemale && !session.participants?.includes(user?.uid)) {
+      return false;
+    }
+    
+    // Filtre pour n'afficher que les sessions Girls Only
+    if (advancedFilters.girlsOnly && !session.girlsOnly) return false;
     
     return true;
   });
@@ -453,6 +813,13 @@ export default function Sessions() {
   const featuredClubs = clubs.filter(c => c.isFeatured);
   const regularClubs = clubs.filter(c => !c.isFeatured);
 
+  // Format date for display
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
   }
@@ -549,6 +916,31 @@ export default function Sessions() {
           </div>
         )}
 
+        {/* MAP VIEW - Date Picker au dessus des Advanced Filters */}
+        {viewMode === 'map' && (
+          <div className="mb-4">
+            <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border border-orange-500/30 rounded-xl p-4">
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📅</span>
+                  <span className="text-white font-semibold">Show sessions for:</span>
+                </div>
+                <div className="flex-1 max-w-xs">
+                  <DatePickerCalendar
+                    value={advancedFilters.specificDate}
+                    onChange={(date) => setAdvancedFilters({ ...advancedFilters, specificDate: date })}
+                    minDate={new Date().toISOString().split('T')[0]}
+                    placeholder="Select a date"
+                  />
+                </div>
+                <div className="text-sm text-gray-400">
+                  {sortedSessions.length} session{sortedSessions.length !== 1 ? 's' : ''} found
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Advanced Filters Toggle - Only for sessions views */}
         {viewMode !== 'clubs' && (
           <div className="mb-6">
@@ -568,55 +960,34 @@ export default function Sessions() {
               
               {/* From Date - Only in List View */}
               {viewMode === 'list' && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">From Date</label>
-                  <input
-                    type="date"
-                    value={advancedFilters.dateFrom}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateFrom: e.target.value })}
-                    className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 [color-scheme:dark]"
-                  />
-                </div>
+                <DatePickerCalendar
+                  label="From Date"
+                  value={advancedFilters.dateFrom}
+                  onChange={(date) => setAdvancedFilters({ ...advancedFilters, dateFrom: date })}
+                  minDate={new Date().toISOString().split('T')[0]}
+                  placeholder="Select start date"
+                />
               )}
 
               {/* To Date - Only in List View */}
               {viewMode === 'list' && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">To Date</label>
-                  <input
-                    type="date"
-                    value={advancedFilters.dateTo}
-                    min={advancedFilters.dateFrom || new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateTo: e.target.value })}
-                    className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 [color-scheme:dark]"
-                  />
-                </div>
-              )}
-
-              {/* Specific Date - Only in Map View */}
-              {viewMode === 'map' && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Show Sessions For</label>
-                  <input
-                    type="date"
-                    value={advancedFilters.specificDate || new Date().toISOString().split('T')[0]}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, specificDate: e.target.value })}
-                    className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 [color-scheme:dark]"
-                  />
-                </div>
+                <DatePickerCalendar
+                  label="To Date"
+                  value={advancedFilters.dateTo}
+                  onChange={(date) => setAdvancedFilters({ ...advancedFilters, dateTo: date })}
+                  minDate={advancedFilters.dateFrom || new Date().toISOString().split('T')[0]}
+                  placeholder="Select end date"
+                />
               )}
 
               {/* Location - All Views */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">Location</label>
-                <input
-                  type="text"
+                <LocationAutocomplete
                   value={advancedFilters.location}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, location: e.target.value })}
-                  placeholder="Search location..."
-                  className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  onChange={(value) => setAdvancedFilters({ ...advancedFilters, location: value })}
+                  activityFilter={filter}
+                  placeholder={filter === 'swimming' ? "Search pools..." : "Search location..."}
                 />
               </div>
 
@@ -654,14 +1025,32 @@ export default function Sessions() {
               </div>
             </div>
 
+            {/* Girls Only Filter - Only visible for women */}
+            {isUserFemale && (
+              <div className="mt-4">
+                <div className="flex items-center gap-3 bg-black rounded-xl p-4 border border-gray-800">
+                  <input
+                    type="checkbox"
+                    id="girlsOnlyFilter"
+                    checked={advancedFilters.girlsOnly}
+                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, girlsOnly: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-600 text-pink-500 focus:ring-pink-500 focus:ring-offset-gray-900"
+                  />
+                  <label htmlFor="girlsOnlyFilter" className="text-white font-semibold cursor-pointer flex items-center gap-2">
+                    👭 Girls Only Sessions
+                  </label>
+                </div>
+              </div>
+            )}
+
             {/* Clear Filters */}
             <div className="mt-4">
               <button
                 onClick={() => {
                   if (viewMode === 'map') {
-                    setAdvancedFilters({ specificDate: new Date().toISOString().split('T')[0], intensities: [], location: '' });
+                    setAdvancedFilters({ ...advancedFilters, specificDate: new Date().toISOString().split('T')[0], intensities: [], location: '', girlsOnly: false });
                   } else {
-                    setAdvancedFilters({ dateFrom: '', dateTo: '', intensities: [], location: '' });
+                    setAdvancedFilters({ dateFrom: '', dateTo: '', specificDate: new Date().toISOString().split('T')[0], intensities: [], location: '', girlsOnly: false });
                   }
                 }}
                 className="text-sm text-gray-400 hover:text-orange-500 transition"
@@ -863,6 +1252,17 @@ export default function Sessions() {
                               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getIntensityColor(session.intensity)}`}>
                                 {session.intensity}
                               </span>
+                              {session.isPrivate && (
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                  🔒 Private
+                                </span>
+                              )}
+                              {/* Badge Girls Only dans Calendar */}
+                              {session.girlsOnly && (
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 text-pink-400">
+                                  👭 Girls Only
+                                </span>
+                              )}
                               {session.participants?.includes(user?.uid) && (
                                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
                                   ✓ Joined
@@ -956,6 +1356,12 @@ export default function Sessions() {
                                     🔒 Private
                                   </span>
                                 )}
+                                {/* Badge Girls Only */}
+                                {session.girlsOnly && (
+                                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 text-pink-400">
+                                    👭 Girls Only
+                                  </span>
+                                )}
                               </div>
                               
                               <p className="text-gray-300 mb-3 text-sm line-clamp-2">{session.description}</p>
@@ -1033,6 +1439,12 @@ export default function Sessions() {
                             {session.isPrivate && (
                               <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                 🔒 Private
+                              </span>
+                            )}
+                            {/* Badge Girls Only */}
+                            {session.girlsOnly && (
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 text-pink-400">
+                                👭 Girls Only
                               </span>
                             )}
                           </div>
@@ -1146,6 +1558,15 @@ export default function Sessions() {
           </>
         )}
       </div>
+
+      {/* Toast Notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       <style jsx>{`
         .calendar-grid {

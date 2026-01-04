@@ -1,15 +1,210 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
 import LocationSelect from '../components/LocationSelect';
 import Toast from '../components/Toast';
 
+// Composant DatePicker avec calendrier
+function DatePickerCalendar({ value, onChange, minDate, label, required }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
+  const containerRef = useRef(null);
+
+  const monthNames = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (value) {
+      setViewDate(new Date(value));
+    }
+  }, [value]);
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    return { daysInMonth, startingDayOfWeek };
+  };
+
+  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(viewDate);
+  const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+
+  const goToPreviousMonth = (e) => {
+    e.stopPropagation();
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = (e) => {
+    e.stopPropagation();
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  };
+
+  const selectDay = (day) => {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    onChange(dateStr);
+    setIsOpen(false);
+  };
+
+  const isDateDisabled = (day) => {
+    if (!minDate) return false;
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateStr < minDate;
+  };
+
+  const isSelectedDate = (day) => {
+    if (!value) return false;
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateStr === value;
+  };
+
+  const isToday = (day) => {
+    const today = new Date();
+    return day === today.getDate() &&
+           viewDate.getMonth() === today.getMonth() &&
+           viewDate.getFullYear() === today.getFullYear();
+  };
+
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return 'Select date';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const calendarDays = [];
+  for (let i = 0; i < adjustedStartDay; i++) {
+    calendarDays.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const disabled = isDateDisabled(day);
+    const selected = isSelectedDate(day);
+    const today = isToday(day);
+
+    calendarDays.push(
+      <button
+        key={day}
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && selectDay(day)}
+        className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
+          selected
+            ? 'bg-orange-500 text-white'
+            : today
+              ? 'bg-orange-500/20 text-orange-400 border border-orange-500'
+              : disabled
+                ? 'text-gray-600 cursor-not-allowed'
+                : 'text-gray-300 hover:bg-gray-700'
+        }`}
+      >
+        {day}
+      </button>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      {label && (
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
+          {label} {required && '*'}
+        </label>
+      )}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-left flex items-center justify-between text-base"
+      >
+        <span className={value ? 'text-white' : 'text-gray-500'}>
+          {formatDisplayDate(value)}
+        </span>
+        <span className="text-gray-400">📅</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-2 bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-xl min-w-[280px]">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={goToPreviousMonth}
+              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+            >
+              ←
+            </button>
+            <span className="font-semibold text-white">
+              {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
+            </span>
+            <button
+              type="button"
+              onClick={goToNextMonth}
+              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+            >
+              →
+            </button>
+          </div>
+
+          {/* Days header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
+              <div key={d} className="w-8 h-6 text-center text-xs text-gray-500 font-medium">
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Days grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays}
+          </div>
+
+          {/* Today button */}
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const todayStr = today.toISOString().split('T')[0];
+              if (!minDate || todayStr >= minDate) {
+                onChange(todayStr);
+                setIsOpen(false);
+              }
+            }}
+            className="w-full mt-3 py-2 text-sm text-orange-500 hover:text-orange-400 font-medium"
+          >
+            Today
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 export default function CreateSession() {
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -29,13 +224,23 @@ export default function CreateSession() {
     distance: '',
     max_participants: '',
     isPrivate: false,
+    girlsOnly: false,
   });
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
+        
+        try {
+          const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
+          if (profileDoc.exists()) {
+            setUserProfile(profileDoc.data());
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
       } else {
         router.push('/');
       }
@@ -56,7 +261,6 @@ export default function CreateSession() {
         );
         const snapshot = await getDocs(clubsQuery);
         
-        // Filter clubs where user is founder OR admin
         const myAdminClubs = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(club => 
@@ -71,6 +275,23 @@ export default function CreateSession() {
 
     fetchMyClubs();
   }, [user]);
+
+  // Reset time when date changes to today (to clear potentially invalid past times)
+  useEffect(() => {
+    if (formData.date && formData.time) {
+      const today = new Date().toISOString().split('T')[0];
+      if (formData.date === today) {
+        const now = new Date();
+        const [hours, minutes] = formData.time.split(':').map(Number);
+        const selectedTime = new Date();
+        selectedTime.setHours(hours, minutes, 0, 0);
+        
+        if (selectedTime <= now) {
+          setFormData(prev => ({ ...prev, time: '' }));
+        }
+      }
+    }
+  }, [formData.date]);
 
   const handleAIGenerate = async () => {
     if (!aiPrompt.trim()) {
@@ -117,11 +338,25 @@ export default function CreateSession() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validation date et heure
+    if (!formData.date) {
+      setToast({ message: 'Please select a date', type: 'error' });
+      return;
+    }
+    
+    if (!formData.time) {
+      setToast({ message: 'Please select a time', type: 'error' });
+      return;
+    }
+    
     const sessionDateTime = new Date(`${formData.date}T${formData.time}`);
     const now = new Date();
 
     if (sessionDateTime < now) {
-      setToast({ message: 'You cannot create a session in the past', type: 'error' });
+      setToast({ 
+        message: '⚠️ Cannot create a session in the past! Please select a future date and time.', 
+        type: 'error' 
+      });
       return;
     }
     
@@ -148,13 +383,13 @@ export default function CreateSession() {
         distance: formData.distance,
         max_participants: formData.max_participants,
         isPrivate: formData.isPrivate,
+        girlsOnly: formData.girlsOnly,
         host_user_id: user.uid,
         host_email: user.email,
         participants: [user.uid],
         created_at: serverTimestamp(),
       };
 
-      // Add club_id if a club is selected
       if (selectedClub) {
         sessionData.club_id = selectedClub;
         sessionData.is_club_session = true;
@@ -188,7 +423,6 @@ export default function CreateSession() {
       
       setToast({ message: 'Session created successfully!', type: 'success' });
       
-      // Redirect to club page if session is linked to a club
       if (selectedClub) {
         setTimeout(() => router.push(`/club/${selectedClub}`), 1500);
       } else {
@@ -219,6 +453,9 @@ export default function CreateSession() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
   }
+
+  const isUserFemale = userProfile?.gender === 'female';
+  const todayStr = new Date().toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-black">
@@ -336,22 +573,15 @@ export default function CreateSession() {
             </div>
           </div>
 
-          {/* Date and Time */}
+          {/* Date and Time - Using custom pickers */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Date *</label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                onKeyDown={(e) => e.preventDefault()}
-                onClick={(e) => e.target.showPicker?.()}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark] cursor-pointer"
-                required
-              />
-            </div>
+            <DatePickerCalendar
+              label="Date"
+              value={formData.date}
+              onChange={(date) => setFormData({ ...formData, date })}
+              minDate={todayStr}
+              required={true}
+            />
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">Time *</label>
               <input
@@ -361,11 +591,6 @@ export default function CreateSession() {
                 onChange={handleChange}
                 onKeyDown={(e) => e.preventDefault()}
                 onClick={(e) => e.target.showPicker?.()}
-                min={
-                  formData.date === new Date().toISOString().split('T')[0]
-                    ? new Date().toTimeString().slice(0, 5)
-                    : undefined
-                }
                 className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark] cursor-pointer"
                 required
               />
@@ -382,7 +607,6 @@ export default function CreateSession() {
               activityType={formData.activity_type}
             />
             
-            {/* Destination - CACHÉ si swimming */}
             {formData.activity_type !== 'swimming' && (
               <LocationSelect
                 label="Destination (optional)"
@@ -394,7 +618,6 @@ export default function CreateSession() {
             )}
           </div>
 
-          {/* Info bubble - CACHÉ si swimming */}
           {formData.activity_type !== 'swimming' && (
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
               <p className="text-sm text-blue-400">
@@ -490,6 +713,29 @@ export default function CreateSession() {
               </div>
             </div>
           </div>
+
+          {/* Girls Only Toggle (visible only for women) */}
+          {isUserFemale && (
+            <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-xl p-4 md:p-6">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="girlsOnly"
+                  checked={formData.girlsOnly}
+                  onChange={(e) => setFormData({ ...formData, girlsOnly: e.target.checked })}
+                  className="mt-1 w-5 h-5 rounded border-pink-600 text-pink-500 focus:ring-pink-500 focus:ring-offset-gray-900"
+                />
+                <div className="flex-1">
+                  <label htmlFor="girlsOnly" className="block text-base font-semibold text-white cursor-pointer">
+                    👭 Girls Only Session
+                  </label>
+                  <p className="text-sm text-pink-400 mt-1">
+                    Only women will be able to join this session. Perfect for creating a safe and supportive environment!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="pt-4">

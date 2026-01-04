@@ -165,8 +165,8 @@ export default function UserProfile() {
             </div>
           )}
 
-          {/* Strava Link */}
-          {profile.stravaLink && (
+          {/* STRAVA - Strava Link Section - COMMENTÉ */}
+          {/* {profile.stravaLink && (
             <div className="mb-6">
               <a 
                 href={profile.stravaLink} 
@@ -180,7 +180,7 @@ export default function UserProfile() {
                 View Strava Profile
               </a>
             </div>
-          )}
+          )} */}
 
           {/* Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
