@@ -165,25 +165,18 @@ export default function UserProfile() {
             </div>
           )}
 
-          {/* STRAVA - Strava Link Section - COMMENTÉ */}
-          {/* {profile.stravaLink && (
-            <div className="mb-6">
-              <a 
-                href={profile.stravaLink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
-                </svg>
-                View Strava Profile
-              </a>
-            </div>
-          )} */}
-
           {/* Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {/* NOUVEAU - Gender Display */}
+            {profile.gender && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 mb-2">Gender</h3>
+                <p className="text-white capitalize text-sm md:text-base">
+                  {profile.gender === 'female' ? '👩 Female' : '👨 Male'}
+                </p>
+              </div>
+            )}
+
             {profile.fitnessLevel && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-400 mb-2">Fitness Level</h3>
