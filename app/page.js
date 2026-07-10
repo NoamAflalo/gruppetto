@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { auth, db } from '@/lib/firebase';
-import { 
+import {
   onAuthStateChanged,
   signInWithPopup,
   GoogleAuthProvider,
@@ -11,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { Users, MapPin, MessagesSquare } from 'lucide-react';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -33,7 +35,7 @@ export default function Home() {
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
-        
+
         if (result?.user) {
           // Redirect successful, user is signed in
         }
@@ -42,7 +44,7 @@ export default function Home() {
         alert('ERROR: ' + error.code + ' - ' + error.message);
       }
     };
-    
+
     handleRedirectResult();
   }, []);
 
@@ -50,7 +52,7 @@ export default function Home() {
     try {
       const profileRef = doc(db, 'profiles', user.uid);
       const profileSnap = await getDoc(profileRef);
-      
+
       // Si le profil n'existe pas, le créer
       if (!profileSnap.exists()) {
         await setDoc(profileRef, {
@@ -73,14 +75,14 @@ export default function Home() {
       setIsAuthenticating(true);
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      
+
       // Créer le profil si nécessaire
       await createUserProfile(result.user);
-      
+
     } catch (error) {
       setIsAuthenticating(false);
       console.error('Error signing in:', error);
-      
+
       if (error.code === 'auth/popup-blocked') {
         alert('🚫 Popups are blocked. Please allow popups for this site in your browser settings.');
       } else if (error.code === 'auth/popup-closed-by-user') {
@@ -104,10 +106,10 @@ export default function Home() {
     setError('');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Créer le profil immédiatement
       await createUserProfile(userCredential.user);
-      
+
       router.push('/browse');
     } catch (error) {
       console.error('Error signing up:', error);
@@ -142,355 +144,166 @@ export default function Home() {
   // Loader pendant l'authentification
   if (isAuthenticating) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '3rem', 
-            marginBottom: '1rem',
-            animation: 'spin 1s linear infinite'
-          }}>⚡</div>
-          <p style={{ color: '#fff', fontSize: '1.25rem' }}>Signing you in...</p>
+      <div className="min-h-screen bg-ground flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-line border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-soft text-lg">Signing you in...</p>
         </div>
-        <style jsx>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
 
+  const features = [
+    {
+      icon: Users,
+      title: 'Find training partners',
+      text: 'Connect with runners, cyclists, and swimmers at your pace. No more solo sessions.',
+    },
+    {
+      icon: MapPin,
+      title: 'Sessions near you',
+      text: 'Browse the map from Battersea to Richmond. Join in one tap, get a reminder the night before.',
+    },
+    {
+      icon: MessagesSquare,
+      title: 'Coordinate together',
+      text: 'Session chat for pace, meeting points, and the post-workout coffee plan.',
+    },
+  ];
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#000',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    }}>
-      {/* Hero Section */}
-      <div style={{ 
-        textAlign: 'center', 
-        maxWidth: '48rem', 
-        marginBottom: '3rem'
-      }}>
-        <h1 style={{ 
-          fontSize: 'clamp(3rem, 8vw, 6rem)',
-          fontWeight: '900',
-          color: '#f97316',
-          marginBottom: '1.5rem',
-          fontStyle: 'italic',
-          lineHeight: '1.1'
-        }}>
-          Gruppetto
-        </h1>
-        <p style={{ 
-          fontSize: 'clamp(1.25rem, 3vw, 1.875rem)',
-          color: '#fff',
-          marginBottom: '1rem',
-          fontWeight: '600'
-        }}>
-          Train together. Get stronger.
-        </p>
-        <p style={{ 
-          fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-          color: '#9ca3af',
-          lineHeight: '1.6'
-        }}>
-          Join the community of runners, cyclists, and swimmers in London. 
-          Find your training partners, organize sessions, and never train alone again.
-        </p>
-      </div>
+    <div className="min-h-screen bg-ground">
+      {/* Top bar */}
+      <header className="max-w-6xl mx-auto px-6 pt-8 flex items-center gap-3">
+        <Image src="/logo.png" alt="Gruppetto" width={36} height={36} className="rounded-lg" />
+        <span className="font-display text-xl uppercase tracking-wide text-ink">Gruppetto</span>
+      </header>
 
-      {/* Sign In Card */}
-      <div style={{
-        width: '100%',
-        maxWidth: '28rem',
-        background: '#111827',
-        border: '1px solid #374151',
-        borderRadius: '1rem',
-        padding: '2rem',
-        marginBottom: '3rem'
-      }}>
-        <h2 style={{
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          color: '#fff',
-          marginBottom: '1.5rem',
-          textAlign: 'center'
-        }}>
-          {isSignUp ? 'Create Account' : 'Welcome Back'}
-        </h2>
-
-        {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#f87171',
-            padding: '0.75rem',
-            borderRadius: '0.5rem',
-            marginBottom: '1rem',
-            fontSize: '0.875rem'
-          }}>
-            {error}
-          </div>
-        )}
-
-        {/* Google Sign In */}
-        <button
-          onClick={handleGoogleSignIn}
-          style={{
-            width: '100%',
-            background: '#fff',
-            color: '#000',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            border: 'none',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            marginBottom: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'background 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
-          onMouseLeave={(e) => e.target.style.background = '#fff'}
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18">
-            <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
-            <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
-            <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
-            <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
-          </svg>
-          Continue with Google
-        </button>
-
-        {/* Divider */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          margin: '1.5rem 0',
-          gap: '1rem'
-        }}>
-          <div style={{ flex: 1, height: '1px', background: '#374151' }}></div>
-          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>or</span>
-          <div style={{ flex: 1, height: '1px', background: '#374151' }}></div>
-        </div>
-
-        {/* Email/Password Form */}
-        <form onSubmit={isSignUp ? handleEmailSignUp : handleEmailSignIn}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{
-              display: 'block',
-              color: '#d1d5db',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              marginBottom: '0.5rem'
-            }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your-email@example.com"
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: '#000',
-                border: '1px solid #374151',
-                borderRadius: '0.5rem',
-                color: '#fff',
-                fontSize: '1rem',
-                outline: 'none',
-                WebkitAppearance: 'none'
-              }}
-            />
+      <main className="max-w-6xl mx-auto px-6">
+        {/* Hero + auth */}
+        <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center py-14 md:py-24">
+          <div>
+            <p className="text-brand font-semibold text-sm uppercase tracking-[0.18em] mb-5">
+              London · Running · Cycling · Swimming
+            </p>
+            <h1 className="font-display uppercase text-6xl md:text-7xl lg:text-8xl leading-[0.95] text-ink mb-6">
+              Never train<br />alone<span className="text-brand">.</span>
+            </h1>
+            <p className="text-soft text-lg md:text-xl leading-relaxed max-w-md">
+              The <em className="text-ink not-italic font-semibold">gruppetto</em> is the group
+              that sticks together to the finish. Find your people, join a session, and show up.
+            </p>
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{
-              display: 'block',
-              color: '#d1d5db',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              marginBottom: '0.5rem'
-            }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: '#000',
-                border: '1px solid #374151',
-                borderRadius: '0.5rem',
-                color: '#fff',
-                fontSize: '1rem',
-                outline: 'none',
-                WebkitAppearance: 'none'
-              }}
-            />
-          </div>
+          {/* Sign In Card */}
+          <div className="w-full max-w-md md:justify-self-end bg-card border border-line rounded-2xl p-8">
+            <h2 className="font-display uppercase text-2xl text-ink mb-6 text-center">
+              {isSignUp ? 'Create account' : 'Welcome back'}
+            </h2>
 
-          <button
-            type="submit"
-            style={{
-              width: '100%',
-              background: '#f97316',
-              color: '#fff',
-              padding: '1rem',
-              borderRadius: '0.5rem',
-              border: 'none',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.background = '#ea580c'}
-            onMouseLeave={(e) => e.target.style.background = '#f97316'}
-          >
-            {isSignUp ? 'Sign Up' : 'Sign In'}
-          </button>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2.5 rounded-lg mb-4 text-sm">
+                {error}
+              </div>
+            )}
 
-          {/* Forgot Password Link */}
-          {!isSignUp && (
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            {/* Google Sign In */}
+            <button
+              onClick={handleGoogleSignIn}
+              className="w-full bg-ink text-ground py-3.5 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-white transition mb-4"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+                <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+                <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
+                <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 my-6">
+              <div className="flex-1 h-px bg-line"></div>
+              <span className="text-muted text-sm">or</span>
+              <div className="flex-1 h-px bg-line"></div>
+            </div>
+
+            {/* Email/Password Form */}
+            <form onSubmit={isSignUp ? handleEmailSignUp : handleEmailSignIn}>
+              <div className="mb-4">
+                <label className="block text-soft text-sm font-semibold mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your-email@example.com"
+                  required
+                  className="w-full p-3 bg-ground border border-line rounded-lg text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand appearance-none"
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-soft text-sm font-semibold mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full p-3 bg-ground border border-line rounded-lg text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand appearance-none"
+                />
+              </div>
+
               <button
-                type="button"
-                onClick={() => router.push('/forgot-password')}
-                style={{
-                  color: '#f97316',
-                  fontSize: '0.875rem',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
+                type="submit"
+                className="w-full bg-brand text-ink py-3.5 rounded-lg font-bold hover:bg-brand-hover transition"
               >
-                Forgot password?
+                {isSignUp ? 'Sign Up' : 'Sign In'}
+              </button>
+
+              {/* Forgot Password Link */}
+              {!isSignUp && (
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/forgot-password')}
+                    className="text-brand text-sm underline hover:text-brand-soft transition"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+            </form>
+
+            {/* Toggle Sign Up / Sign In */}
+            <div className="mt-6 text-center text-muted text-sm">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError('');
+                }}
+                className="text-brand font-semibold underline hover:text-brand-soft transition"
+              >
+                {isSignUp ? 'Sign In' : 'Sign Up'}
               </button>
             </div>
-          )}
-        </form>
-
-        {/* Toggle Sign Up / Sign In */}
-        <div style={{ 
-          marginTop: '1.5rem', 
-          textAlign: 'center',
-          color: '#9ca3af',
-          fontSize: '0.875rem'
-        }}>
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError('');
-            }}
-            style={{
-              color: '#f97316',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              fontSize: '0.875rem',
-              fontWeight: '600'
-            }}
-          >
-            {isSignUp ? 'Sign In' : 'Sign Up'}
-          </button>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div style={{
-        width: '100%',
-        maxWidth: '64rem',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '2rem',
-        marginBottom: '3rem'
-      }}>
-        <div style={{
-          background: '#111827',
-          border: '1px solid #374151',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏃</div>
-          <h3 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-            Find Training Partners
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '0.875rem', lineHeight: '1.5' }}>
-            Connect with runners, cyclists, and swimmers in your area. No more solo sessions.
-          </p>
+          </div>
         </div>
 
-        <div style={{
-          background: '#111827',
-          border: '1px solid #374151',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
-          <h3 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-            Local Sessions
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '0.875rem', lineHeight: '1.5' }}>
-            Browse sessions on the map. Find workouts near Battersea, Clapham, Richmond, and beyond.
-          </p>
+        {/* Features Section */}
+        <div className="grid sm:grid-cols-3 gap-5 pb-20">
+          {features.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="bg-card border border-line rounded-2xl p-7">
+              <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/25 flex items-center justify-center mb-5">
+                <Icon size={20} className="text-brand" />
+              </div>
+              <h3 className="font-display uppercase text-lg text-ink mb-2">{title}</h3>
+              <p className="text-muted text-sm leading-relaxed">{text}</p>
+            </div>
+          ))}
         </div>
-
-        <div style={{
-          background: '#111827',
-          border: '1px solid #374151',
-          borderRadius: '1rem',
-          padding: '2rem',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
-          <h3 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-            Real-Time Chat
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '0.875rem', lineHeight: '1.5' }}>
-            Coordinate with your training group. Discuss pace, meeting points, and post-workout coffee.
-          </p>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{ 
-        textAlign: 'center',
-        paddingTop: '2rem',
-        borderTop: '1px solid #374151',
-        width: '100%',
-        maxWidth: '64rem'
-      }}>
-        <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-          © 2025 Gruppetto. Made with 💪 in London.
-        </p>
-      </div>
+      </main>
     </div>
   );
 }

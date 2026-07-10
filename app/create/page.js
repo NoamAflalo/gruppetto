@@ -9,6 +9,8 @@ import Navigation from '../components/navigation';
 import LocationSelect from '../components/LocationSelect';
 import Toast from '../components/Toast';
 import DatePickerCalendar from '../components/DatePickerCalendar';
+import ActivityIcon from '../components/ActivityIcon';
+import { Sparkles, Lock } from 'lucide-react';
 
 export default function CreateSession() {
   const [user, setUser] = useState(null);
@@ -249,135 +251,116 @@ export default function CreateSession() {
     });
   };
 
-  const getActivityEmoji = (type) => {
-    switch(type) {
-      case 'running': return '🏃';
-      case 'cycling': return '🚴';
-      case 'swimming': return '🏊';
-      default: return '💪';
-    }
-  };
-
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-ground">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-12 space-y-4">
+          <div className="skeleton h-10 w-64" />
+          <div className="skeleton h-14 rounded-xl" />
+          <div className="skeleton h-96 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   const isUserFemale = userProfile?.gender === 'female';
   const todayStr = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">Create a Session</h1>
-          <p className="text-gray-400 text-base md:text-lg">Organize your next training session</p>
+          <h1 className="font-display uppercase text-4xl md:text-5xl text-ink mb-1.5">Create a Session</h1>
+          <p className="text-muted text-base md:text-lg">Organize your next training session</p>
         </div>
 
         {/* AI Generator Button */}
         <button
           type="button"
           onClick={() => setShowAIModal(true)}
-          className="mb-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-bold text-lg hover:from-purple-600 hover:to-pink-600 transition flex items-center justify-center gap-2"
+          className="mb-6 w-full bg-gradient-to-r from-brand to-brand-hover text-white py-4 rounded-xl font-bold text-lg hover:from-brand-hover hover:to-brand-hover transition flex items-center justify-center gap-2"
         >
-          ✨ Need inspiration? Ask Claude AI
+          <Sparkles size={19} /> Need inspiration? Ask Claude AI
         </button>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 space-y-4 md:space-y-6">
+        <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-line p-4 md:p-8 space-y-4 md:space-y-6">
           
           {/* Link to Club (Optional) */}
           {clubs.length > 0 && (
-            <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-4 md:p-6">
-              <label className="block text-sm font-semibold text-white mb-3">
-                🏛️ Link to Club (Optional)
+            <div className="bg-gradient-to-r from-brand/10 to-brand/5 border border-brand/25 rounded-xl p-4 md:p-6">
+              <label className="block text-sm font-semibold text-ink mb-3">
+                Link to Club (Optional)
               </label>
               <select
                 value={selectedClub}
                 onChange={(e) => setSelectedClub(e.target.value)}
-                className="w-full p-3 md:p-4 bg-black border border-purple-500/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
+                className="w-full p-3 md:p-4 bg-ground border border-brand/50 rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-base"
               >
                 <option value="">No club (Personal session)</option>
                 {clubs.map((club) => (
                   <option key={club.id} value={club.id}>
-                    {getActivityEmoji(club.activity_type)} {club.name}
+                    {club.name}
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-purple-400 mt-2">
-                💡 Create this session for one of your clubs. Only clubs where you're an admin are shown.
+              <p className="text-xs text-brand-soft mt-2">
+                Create this session for one of your clubs. Only clubs where you're an admin are shown.
               </p>
             </div>
           )}
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Session Title *</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Session Title *</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
               placeholder="e.g., Morning 10K Run"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
               required
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Description *</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Description *</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               placeholder="Tell people about your session..."
               rows="4"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
               required
             />
           </div>
 
           {/* Activity Type */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Activity Type *</label>
+            <label className="block text-sm font-semibold text-soft mb-3">Activity Type *</label>
             <div className="grid grid-cols-3 gap-2 md:gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, activity_type: 'running' })}
-                className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition ${
-                  formData.activity_type === 'running'
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
-                }`}
-              >
-                <div className="text-2xl md:text-3xl mb-1">🏃</div>
-                <div className="text-xs md:text-sm">Running</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, activity_type: 'cycling' })}
-                className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition ${
-                  formData.activity_type === 'cycling'
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
-                }`}
-              >
-                <div className="text-2xl md:text-3xl mb-1">🚴</div>
-                <div className="text-xs md:text-sm">Cycling</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, activity_type: 'swimming' })}
-                className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition ${
-                  formData.activity_type === 'swimming'
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
-                }`}
-              >
-                <div className="text-2xl md:text-3xl mb-1">🏊</div>
-                <div className="text-xs md:text-sm">Swimming</div>
-              </button>
+              {['running', 'cycling', 'swimming'].map((activity) => {
+                const active = formData.activity_type === activity;
+                return (
+                  <button
+                    key={activity}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, activity_type: activity })}
+                    className={`p-3 md:p-4 rounded-xl border font-semibold transition flex flex-col items-center gap-2 ${
+                      active
+                        ? 'bg-brand/10 border-brand text-ink'
+                        : 'bg-ground border-line text-soft hover:border-brand/40'
+                    }`}
+                  >
+                    <ActivityIcon type={activity} size={24} className={active ? 'text-brand' : 'text-muted'} />
+                    <div className="text-xs md:text-sm capitalize">{activity}</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -392,7 +375,7 @@ export default function CreateSession() {
               required={true}
             />
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Time *</label>
+              <label className="block text-sm font-semibold text-soft mb-2">Time *</label>
               <input
                 type="time"
                 name="time"
@@ -400,7 +383,7 @@ export default function CreateSession() {
                 onChange={handleChange}
                 onKeyDown={(e) => e.preventDefault()}
                 onClick={(e) => e.target.showPicker?.()}
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base [color-scheme:dark] cursor-pointer"
+                className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-base [color-scheme:dark] cursor-pointer"
                 required
               />
             </div>
@@ -428,8 +411,8 @@ export default function CreateSession() {
           </div>
 
           {formData.activity_type !== 'swimming' && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-              <p className="text-sm text-blue-400">
+            <div className="bg-brand/5 border border-brand/20 rounded-xl p-4">
+              <p className="text-sm text-soft">
                 💡 <strong>Tip:</strong> Add a destination if your session involves traveling (e.g., "Meet at City Hall → Run to Battersea Park")
               </p>
             </div>
@@ -437,15 +420,15 @@ export default function CreateSession() {
 
           {/* Intensity */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Intensity *</label>
+            <label className="block text-sm font-semibold text-soft mb-3">Intensity *</label>
             <div className="grid grid-cols-3 gap-2 md:gap-3">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, intensity: 'easy' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                   formData.intensity === 'easy'
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                    ? 'bg-green-500 border-green-500 text-ink'
+                    : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
                 Easy
@@ -455,8 +438,8 @@ export default function CreateSession() {
                 onClick={() => setFormData({ ...formData, intensity: 'moderate' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                   formData.intensity === 'moderate'
-                    ? 'bg-yellow-500 border-yellow-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                    ? 'bg-yellow-500 border-yellow-500 text-ink'
+                    : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
                 Moderate
@@ -466,8 +449,8 @@ export default function CreateSession() {
                 onClick={() => setFormData({ ...formData, intensity: 'hard' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                   formData.intensity === 'hard'
-                    ? 'bg-red-500 border-red-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                    ? 'bg-red-500 border-red-500 text-ink'
+                    : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
                 Hard
@@ -478,18 +461,18 @@ export default function CreateSession() {
           {/* Distance and Max Participants */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Distance (optional)</label>
+              <label className="block text-sm font-semibold text-soft mb-2">Distance (optional)</label>
               <input
                 type="text"
                 name="distance"
                 value={formData.distance}
                 onChange={handleChange}
                 placeholder="e.g., 10km"
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Max Participants (optional)</label>
+              <label className="block text-sm font-semibold text-soft mb-2">Max Participants (optional)</label>
               <input
                 type="number"
                 name="max_participants"
@@ -497,26 +480,27 @@ export default function CreateSession() {
                 onChange={handleChange}
                 placeholder="No limit"
                 min="1"
-                className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
               />
             </div>
           </div>
 
           {/* Private Session Toggle */}
-          <div className="bg-black rounded-xl p-4 md:p-6 border border-gray-700">
+          <div className="bg-ground rounded-xl p-4 md:p-6 border border-line">
             <div className="flex items-start gap-3">
               <input
                 type="checkbox"
                 id="isPrivate"
                 checked={formData.isPrivate}
                 onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
-                className="mt-1 w-5 h-5 rounded border-gray-600 text-orange-500 focus:ring-orange-500 focus:ring-offset-gray-900"
+                className="mt-1 w-5 h-5 rounded border-line text-brand focus:ring-brand focus:ring-offset-card"
               />
               <div className="flex-1">
-                <label htmlFor="isPrivate" className="block text-base font-semibold text-white cursor-pointer">
-                  🔒 Private Session (Request to Join)
+                <label htmlFor="isPrivate" className="block text-base font-semibold text-ink cursor-pointer">
+                  <Lock size={15} className="inline -mt-0.5 mr-1.5 text-muted" />
+                  Private Session (Request to Join)
                 </label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-muted mt-1">
                   Perfect for run clubs! People can see your session but need your approval to join.
                 </p>
               </div>
@@ -525,18 +509,18 @@ export default function CreateSession() {
 
           {/* Girls Only Toggle (visible only for women) */}
           {isUserFemale && (
-            <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-xl p-4 md:p-6">
+            <div className="bg-pink-500/5 border border-pink-500/25 rounded-xl p-4 md:p-6">
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   id="girlsOnly"
                   checked={formData.girlsOnly}
                   onChange={(e) => setFormData({ ...formData, girlsOnly: e.target.checked })}
-                  className="mt-1 w-5 h-5 rounded border-pink-600 text-pink-500 focus:ring-pink-500 focus:ring-offset-gray-900"
+                  className="mt-1 w-5 h-5 rounded border-pink-600 text-pink-500 focus:ring-pink-500 focus:ring-offset-card"
                 />
                 <div className="flex-1">
-                  <label htmlFor="girlsOnly" className="block text-base font-semibold text-white cursor-pointer">
-                    👭 Girls Only Session
+                  <label htmlFor="girlsOnly" className="block text-base font-semibold text-ink cursor-pointer">
+                    Girls Only Session
                   </label>
                   <p className="text-sm text-pink-400 mt-1">
                     Only women will be able to join this session. Perfect for creating a safe and supportive environment!
@@ -550,7 +534,7 @@ export default function CreateSession() {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full bg-orange-500 text-white py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-orange-600 transition"
+              className="w-full bg-brand text-ink py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-brand-hover transition"
             >
               {selectedClub ? 'Create Club Session' : 'Create Session'}
             </button>
@@ -560,32 +544,34 @@ export default function CreateSession() {
         {/* AI Modal */}
         {showAIModal && (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8 max-w-2xl w-full">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">✨ AI Session Generator</h2>
-              <p className="text-gray-400 mb-6">Describe what kind of session you want and Claude will create it for you!</p>
+            <div className="bg-card rounded-2xl border border-line p-6 md:p-8 max-w-2xl w-full">
+              <h2 className="font-display uppercase text-2xl md:text-3xl text-ink mb-4 flex items-center gap-2.5">
+                <Sparkles size={24} className="text-brand" /> AI Session Generator
+              </h2>
+              <p className="text-muted mb-6">Describe what kind of session you want and Claude will create it for you!</p>
               
               <textarea
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder="Example: 'Fun interval session for beginners in Battersea Park' or 'Challenging hill repeats for advanced runners'"
                 rows="4"
-                className="w-full p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-6"
+                className="w-full p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand mb-6"
               />
               
               <div className="flex gap-3">
                 <button
                   onClick={handleAIGenerate}
                   disabled={aiLoading}
-                  className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-bold hover:bg-purple-600 disabled:bg-gray-700 disabled:cursor-not-allowed transition"
+                  className="flex-1 bg-brand text-ink py-3 rounded-xl font-bold hover:bg-brand-hover disabled:bg-card2 disabled:cursor-not-allowed transition"
                 >
-                  {aiLoading ? '✨ Generating...' : '✨ Generate Session'}
+                  {aiLoading ? 'Generating…' : 'Generate Session'}
                 </button>
                 <button
                   onClick={() => {
                     setShowAIModal(false);
                     setAiPrompt('');
                   }}
-                  className="px-6 py-3 bg-gray-800 text-white rounded-xl font-semibold hover:bg-gray-700 transition"
+                  className="px-6 py-3 bg-card2 text-ink rounded-xl font-semibold hover:bg-card2 transition"
                 >
                   Cancel
                 </button>

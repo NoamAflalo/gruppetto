@@ -1,7 +1,20 @@
 import "./globals.css";
+import { Barlow, Barlow_Condensed } from 'next/font/google';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import Footer from './components/Footer';
 import { Toaster } from 'react-hot-toast';
+
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-body',
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-display',
+});
 
 export const metadata = {
   title: 'Gruppetto - Find Training Partners in London',
@@ -35,15 +48,15 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="antialiased" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Toaster 
+    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
+      <body className="antialiased font-sans bg-ground text-ink" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              background: '#111827',
-              color: '#fff',
-              border: '1px solid #374151',
+              background: '#17140F',
+              color: '#F2EFE9',
+              border: '1px solid #2A251E',
             },
             success: {
               iconTheme: {

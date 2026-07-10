@@ -45,7 +45,7 @@ export default function SessionMap({ sessions, onMarkerClick }) {
 
   if (!API_KEY) {
     return (
-      <div className="bg-red-900 border border-red-500 p-4 rounded-lg text-white">
+      <div className="bg-red-900 border border-red-500 p-4 rounded-lg text-ink">
         ❌ Error: Google Maps API key not found
       </div>
     );

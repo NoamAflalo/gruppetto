@@ -169,23 +169,23 @@ export default function Dashboard() {
       case 'easy': return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'moderate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'hard': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      default: return 'bg-gray-500/20 text-muted border-gray-500/30';
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">My Dashboard</h1>
-          <p className="text-gray-400 text-base md:text-lg">
+          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">My Dashboard</h1>
+          <p className="text-muted text-base md:text-lg">
             Welcome back, {userProfile?.displayName || user?.email}!
           </p>
         </div>
@@ -196,8 +196,8 @@ export default function Dashboard() {
             onClick={() => setViewFilter('participating')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
               viewFilter === 'participating' 
-                ? 'bg-orange-500 text-white' 
-                : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                ? 'bg-brand text-ink' 
+                : 'bg-card text-soft hover:bg-card2 border border-line'
             }`}
           >
             👥 My Sessions
@@ -206,8 +206,8 @@ export default function Dashboard() {
             onClick={() => setViewFilter('hosting')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
               viewFilter === 'hosting' 
-                ? 'bg-orange-500 text-white' 
-                : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                ? 'bg-brand text-ink' 
+                : 'bg-card text-soft hover:bg-card2 border border-line'
             }`}
           >
             🎤 Hosting
@@ -216,8 +216,8 @@ export default function Dashboard() {
             onClick={() => setViewFilter('clubs')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
               viewFilter === 'clubs' 
-                ? 'bg-orange-500 text-white' 
-                : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                ? 'bg-brand text-ink' 
+                : 'bg-card text-soft hover:bg-card2 border border-line'
             }`}
           >
             🏛️ My Clubs
@@ -231,8 +231,8 @@ export default function Dashboard() {
               onClick={() => setTimeFilter('upcoming')}
               className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
                 timeFilter === 'upcoming' 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                  ? 'bg-green-500 text-ink' 
+                  : 'bg-card text-soft hover:bg-card2 border border-line'
               }`}
             >
               📅 Upcoming
@@ -241,8 +241,8 @@ export default function Dashboard() {
               onClick={() => setTimeFilter('past')}
               className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
                 timeFilter === 'past' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                  ? 'bg-blue-500 text-ink' 
+                  : 'bg-card text-soft hover:bg-card2 border border-line'
               }`}
             >
               📜 Past
@@ -251,8 +251,8 @@ export default function Dashboard() {
               onClick={() => setTimeFilter('all')}
               className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
                 timeFilter === 'all' 
-                  ? 'bg-purple-500 text-white' 
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                  ? 'bg-brand text-ink' 
+                  : 'bg-card text-soft hover:bg-card2 border border-line'
               }`}
             >
               🗂️ All
@@ -264,13 +264,13 @@ export default function Dashboard() {
         {viewFilter === 'clubs' && (
           <div>
             {clubs.length === 0 ? (
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
-                <p className="text-gray-400 text-base md:text-lg mb-4">
+              <div className="bg-card rounded-xl border border-line p-8 md:p-12 text-center">
+                <p className="text-muted text-base md:text-lg mb-4">
                   You haven't joined any clubs yet.
                 </p>
                 <button
                   onClick={() => router.push('/browse?view=clubs')}
-                  className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
+                  className="bg-brand text-ink px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
                 >
                   Browse Clubs
                 </button>
@@ -284,7 +284,7 @@ export default function Dashboard() {
                     <div
                       key={club.id}
                       onClick={() => router.push(`/club/${club.id}`)}
-                      className="bg-gray-900 rounded-xl border border-gray-800 p-6 hover:border-orange-500/50 transition cursor-pointer"
+                      className="bg-card rounded-xl border border-line p-6 hover:border-brand/50 transition cursor-pointer"
                     >
                       <div className="flex flex-col lg:flex-row gap-6">
                         {club.coverImage && (
@@ -296,32 +296,32 @@ export default function Dashboard() {
                         )}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <h3 className="text-2xl font-bold text-white">{club.name}</h3>
+                            <h3 className="text-2xl font-bold text-ink">{club.name}</h3>
                             {club.isFeatured && (
-                              <span className="px-2 py-1 bg-orange-500 text-white rounded text-xs font-bold">
+                              <span className="px-2 py-1 bg-brand text-ink rounded text-xs font-bold">
                                 ✓ VERIFIED
                               </span>
                             )}
                             {isFounder && (
-                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-xs font-bold">
+                              <span className="px-2 py-1 bg-card2 text-soft border border-line rounded text-xs font-bold">
                                 ★ Founder
                               </span>
                             )}
                           </div>
                           <div className="space-y-1 text-sm mb-4">
-                            <p className="text-gray-300">
+                            <p className="text-soft">
                               {getActivityEmoji(club.activity_type)} {club.activity_type.charAt(0).toUpperCase() + club.activity_type.slice(1)}
                             </p>
-                            <p className="text-gray-300">📍 {club.location}</p>
-                            <p className="text-gray-300">👥 {club.member_count || 1} members</p>
+                            <p className="text-soft">📍 {club.location}</p>
+                            <p className="text-soft">👥 {club.member_count || 1} members</p>
                           </div>
-                          <p className="text-gray-400 mb-4 line-clamp-2">{club.description}</p>
+                          <p className="text-muted mb-4 line-clamp-2">{club.description}</p>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               router.push(`/club/${club.id}`);
                             }}
-                            className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-semibold transition"
+                            className="bg-brand text-ink px-6 py-2 rounded-lg hover:bg-brand-hover font-semibold transition"
                           >
                             View Club
                           </button>
@@ -339,15 +339,15 @@ export default function Dashboard() {
         {viewFilter !== 'clubs' && (
           <>
             {sortedSessions.length === 0 ? (
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
-                <p className="text-gray-400 text-base md:text-lg mb-4">
+              <div className="bg-card rounded-xl border border-line p-8 md:p-12 text-center">
+                <p className="text-muted text-base md:text-lg mb-4">
                   {viewFilter === 'participating' 
                     ? "You haven't joined any sessions yet." 
                     : "You haven't hosted any sessions yet."}
                 </p>
                 <button
                   onClick={() => router.push(viewFilter === 'participating' ? '/browse' : '/create')}
-                  className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
+                  className="bg-brand text-ink px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
                 >
                   {viewFilter === 'participating' ? 'Browse Sessions' : 'Create Session'}
                 </button>
@@ -363,7 +363,7 @@ export default function Dashboard() {
                   return (
                     <div 
                       key={session.id}
-                      className={`bg-gray-900 rounded-xl border p-4 md:p-8 hover:border-orange-500/50 transition cursor-pointer ${
+                      className={`bg-card rounded-xl border p-4 md:p-8 hover:border-brand/50 transition cursor-pointer ${
                         isPast ? 'opacity-60' : ''
                       }`}
                       onClick={() => router.push(`/session/${session.id}`)}
@@ -372,30 +372,30 @@ export default function Dashboard() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
                             <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
-                            <h2 className="text-xl md:text-3xl font-bold text-white">{session.title}</h2>
+                            <h2 className="text-xl md:text-3xl font-bold text-ink">{session.title}</h2>
                             <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
                               {session.intensity}
                             </span>
                             {isHost && (
-                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-brand/20 text-brand-soft border border-brand/30">
                                 🎤 Host
                               </span>
                             )}
                             {isPast && (
-                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gray-500/20 text-muted border border-gray-500/30">
                                 ⏱️ Past
                               </span>
                             )}
                             {session.isPrivate && (
-                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-card2 text-soft border border-line">
                                 🔒 Private
                               </span>
                             )}
                           </div>
                           
-                          <p className="text-gray-400 mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
+                          <p className="text-muted mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
                           
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm md:text-base text-gray-300 mb-3 md:mb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm md:text-base text-soft mb-3 md:mb-4">
                             <div>📅 <strong>Date:</strong> {session.date}</div>
                             <div>🕐 <strong>Time:</strong> {session.time}</div>
                             <div className="sm:col-span-2">📍 <strong>Location:</strong> {session.location}</div>
@@ -405,7 +405,7 @@ export default function Dashboard() {
                           {/* Host Profile */}
                           {!isHost && (
                             <div 
-                              className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 hover:bg-gray-800 p-2 md:p-3 rounded-lg inline-flex transition"
+                              className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 hover:bg-card2 p-2 md:p-3 rounded-lg inline-flex transition"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 router.push(`/profile/${session.host_user_id}`);
@@ -415,19 +415,19 @@ export default function Dashboard() {
                                 <img 
                                   src={hostProfile.profileImage} 
                                   alt={hostProfile.displayName}
-                                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500"
+                                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-brand"
                                 />
                               ) : (
-                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 flex items-center justify-center text-lg md:text-xl border-2 border-orange-500">
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-card2 flex items-center justify-center text-lg md:text-xl border-2 border-brand">
                                   👤
                                 </div>
                               )}
                               <div>
-                                <p className="text-xs md:text-sm font-semibold text-white">
+                                <p className="text-xs md:text-sm font-semibold text-ink">
                                   Hosted by {hostProfile?.displayName || session.host_email}
                                 </p>
                                 {hostProfile?.fitnessLevel && (
-                                  <p className="text-xs text-gray-500 capitalize">{hostProfile.fitnessLevel}</p>
+                                  <p className="text-xs text-muted capitalize">{hostProfile.fitnessLevel}</p>
                                 )}
                               </div>
                             </div>
@@ -435,7 +435,7 @@ export default function Dashboard() {
                           
                           {/* Participants */}
                           <div className="mb-2">
-                            <p className="text-xs md:text-sm font-semibold text-gray-300 mb-2 md:mb-3">
+                            <p className="text-xs md:text-sm font-semibold text-soft mb-2 md:mb-3">
                               👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
                               {session.max_participants && ` (max: ${session.max_participants})`}
                             </p>
@@ -457,11 +457,11 @@ export default function Dashboard() {
                                         <img 
                                           src={profile.profileImage} 
                                           alt={profile.displayName}
-                                          className="rounded-full object-cover border-2 border-gray-700 hover:border-orange-500"
+                                          className="rounded-full object-cover border-2 border-line hover:border-brand"
                                           style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
                                         />
                                       ) : (
-                                        <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs md:text-sm border-2 border-gray-700 hover:border-orange-500"
+                                        <div className="rounded-full bg-card2 flex items-center justify-center text-xs md:text-sm border-2 border-line hover:border-brand"
                                              style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
                                           👤
                                         </div>
@@ -470,7 +470,7 @@ export default function Dashboard() {
                                   );
                                 })}
                                 {participantCount > 5 && (
-                                  <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-400 border-2 border-gray-700"
+                                  <div className="rounded-full bg-card2 flex items-center justify-center text-xs font-semibold text-muted border-2 border-line"
                                        style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
                                     +{participantCount - 5}
                                   </div>
@@ -486,7 +486,7 @@ export default function Dashboard() {
                             e.stopPropagation();
                             router.push(`/session/${session.id}`);
                           }}
-                          className="w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition bg-orange-500 text-white hover:bg-orange-600"
+                          className="w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition bg-brand text-ink hover:bg-brand-hover"
                         >
                           View Details
                         </button>

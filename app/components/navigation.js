@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { User, Users, Settings, LogOut, Menu, X, ChevronDown } from 'lucide-react';
 
 export default function Navigation({ user }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -16,7 +18,7 @@ export default function Navigation({ user }) {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
-      
+
       try {
         const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
         if (profileDoc.exists()) {
@@ -26,51 +28,61 @@ export default function Navigation({ user }) {
         console.error('Error fetching user profile:', error);
       }
     };
-    
+
     fetchUserProfile();
   }, [user]);
 
+  // Unread chat messages across joined sessions. One listener per session,
+  // tracked in a map so counts stay correct and listeners are cleaned up.
   useEffect(() => {
     if (!user) return;
 
-    // Reset unread count when on notifications page
-    if (pathname === '/notifications') {
-      setUnreadCount(0);
-      return;
-    }
+    const counts = new Map();
+    const innerUnsubs = new Map();
+
+    const recompute = () => {
+      const total = [...counts.values()].reduce((a, b) => a + b, 0);
+      setUnreadCount(pathname === '/notifications' ? 0 : total);
+    };
 
     const q = query(
       collection(db, 'sessions'),
       where('participants', 'array-contains', user.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let totalUnread = 0;
+    const outerUnsub = onSnapshot(q, (snapshot) => {
+      const currentIds = new Set(snapshot.docs.map((d) => d.id));
+
+      for (const [id, unsub] of innerUnsubs) {
+        if (!currentIds.has(id)) {
+          unsub();
+          innerUnsubs.delete(id);
+          counts.delete(id);
+        }
+      }
 
       snapshot.docs.forEach((sessionDoc) => {
+        if (innerUnsubs.has(sessionDoc.id)) return;
+
         const commentsRef = collection(db, 'sessions', sessionDoc.id, 'comments');
-        
-        onSnapshot(commentsRef, (commentsSnapshot) => {
-          const unreadComments = commentsSnapshot.docs.filter(doc => {
-            const comment = doc.data();
-            return comment.userId && comment.userId !== user.uid && 
+        const unsub = onSnapshot(commentsRef, (commentsSnapshot) => {
+          const unread = commentsSnapshot.docs.filter((docSnap) => {
+            const comment = docSnap.data();
+            return comment.userId && comment.userId !== user.uid &&
                    (!comment.readBy || !comment.readBy.includes(user.uid));
-          });
-          
-          totalUnread += unreadComments.length;
-          
-          // Don't show count on notifications page
-          if (pathname === '/notifications') {
-            setUnreadCount(0);
-          } else {
-            setUnreadCount(totalUnread);
-          }
+          }).length;
+          counts.set(sessionDoc.id, unread);
+          recompute();
         });
+        innerUnsubs.set(sessionDoc.id, unsub);
       });
+
+      recompute();
     });
 
     return () => {
-      unsubscribe();
+      outerUnsub();
+      innerUnsubs.forEach((unsub) => unsub());
     };
   }, [user, pathname]);
 
@@ -85,491 +97,196 @@ export default function Navigation({ user }) {
 
   const navItems = [
     { label: 'How it Works', path: '/how-it-works' },
-    { label: 'Browse Sessions', path: '/browse' },
+    { label: 'Browse', path: '/browse' },
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Notifications', path: '/notifications', badge: unreadCount },
-    { label: 'Create Session', path: '/create' },
   ];
 
+  const menuItems = [
+    { label: 'My Profile', path: '/profile', icon: User },
+    { label: 'Create Club', path: '/create-club', icon: Users },
+    { label: 'Settings', path: '/settings', icon: Settings },
+  ];
+
+  const Badge = ({ count }) =>
+    count > 0 ? (
+      <span className="bg-brand text-ink rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none">
+        {count}
+      </span>
+    ) : null;
+
   return (
-    <nav style={{ 
-      background: '#000', 
-      borderBottom: '1px solid #374151',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50
-    }}>
-      <div style={{ 
-        maxWidth: '80rem', 
-        margin: '0 auto', 
-        padding: '1rem 1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+    <nav className="sticky top-0 z-50 bg-ground/90 backdrop-blur border-b border-line">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
-        <button
-          onClick={() => router.push('/browse')}
-          style={{
-            fontSize: '1.5rem',
-            fontWeight: '900',
-            color: '#f97316',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontStyle: 'italic'
-          }}
-        >
-          Gruppetto
+        <button onClick={() => router.push('/browse')} className="flex items-center gap-2.5 flex-none">
+          <Image src="/logo.png" alt="" width={30} height={30} className="rounded-md" />
+          <span className="font-display uppercase text-lg tracking-wide text-ink">Gruppetto</span>
         </button>
 
         {/* Desktop Navigation */}
-        <div style={{ 
-          display: 'none', 
-          gap: '1.5rem', 
-          alignItems: 'center',
-        }}
-        className="desktop-nav"
-        >
-          {navItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => router.push(item.path)}
-              style={{
-                color: '#d1d5db',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'color 0.2s',
-                position: 'relative',
-                padding: '0.5rem'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#f97316'}
-              onMouseLeave={(e) => e.target.style.color = '#d1d5db'}
-            >
-              {item.label}
-              {item.badge > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '0',
-                  right: '-0.5rem',
-                  background: '#ef4444',
-                  color: '#fff',
-                  borderRadius: '9999px',
-                  padding: '0.125rem 0.375rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="hidden md:flex items-center gap-1">
+          {navItems.map((item) => {
+            const active = pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className={`relative px-3 py-2 text-sm font-medium rounded-lg transition flex items-center gap-1.5 ${
+                  active ? 'text-ink' : 'text-muted hover:text-ink'
+                }`}
+              >
+                {item.label}
+                <Badge count={item.badge} />
+                {active && (
+                  <span className="absolute left-3 right-3 -bottom-[13px] h-0.5 bg-brand rounded-full" />
+                )}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => router.push('/create')}
+            className="ml-2 bg-brand text-ink text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-hover transition"
+          >
+            + Create
+          </button>
 
           {/* Desktop User Menu */}
-          <div style={{ position: 'relative' }}>
+          <div className="relative ml-2">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#1f2937'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-lg hover:bg-card2 transition"
             >
               {userProfile?.profileImage ? (
-                <img 
-                  src={userProfile.profileImage} 
+                <img
+                  src={userProfile.profileImage}
                   alt={userProfile.displayName || 'Profile'}
-                  style={{
-                    width: '2.5rem',
-                    height: '2.5rem',
-                    borderRadius: '9999px',
-                    objectFit: 'cover',
-                    border: '2px solid #f97316'
-                  }}
+                  className="w-8 h-8 rounded-full object-cover border border-line"
                 />
               ) : (
-                <div style={{
-                  width: '2.5rem',
-                  height: '2.5rem',
-                  borderRadius: '9999px',
-                  background: '#1f2937',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.125rem',
-                  border: '2px solid #f97316'
-                }}>
-                  👤
+                <div className="w-8 h-8 rounded-full bg-card2 border border-line flex items-center justify-center">
+                  <User size={15} className="text-muted" />
                 </div>
               )}
-              <span style={{ color: '#fff', fontWeight: '600', fontSize: '1rem' }}>
-                {userProfile?.displayName || 'Profile'}
-              </span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style={{ color: '#9ca3af' }}>
-                <path d="M6 9L1 4h10z"/>
-              </svg>
+              <ChevronDown size={14} className="text-muted" />
             </button>
 
             {showUserMenu && (
-              <div style={{
-                position: 'absolute',
-                right: 0,
-                marginTop: '0.5rem',
-                width: '12rem',
-                background: '#111827',
-                border: '1px solid #374151',
-                borderRadius: '0.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                zIndex: 50
-              }}>
-                <button
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    router.push('/profile');
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.75rem 1rem',
-                    color: '#fff',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  👤 My Profile
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    router.push('/create-club');
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.75rem 1rem',
-                    color: '#fff',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  👥 Create Club
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    router.push('/settings');
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.75rem 1rem',
-                    color: '#fff',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  ⚙️ Settings
-                </button>
-                <div style={{ borderTop: '1px solid #374151' }}></div>
+              <div className="absolute right-0 mt-2 w-52 bg-card border border-line rounded-xl shadow-xl shadow-black/40 overflow-hidden">
+                {menuItems.map(({ label, path, icon: Icon }) => (
+                  <button
+                    key={path}
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      router.push(path);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-soft hover:bg-card2 hover:text-ink transition flex items-center gap-2.5"
+                  >
+                    <Icon size={15} className="text-muted" /> {label}
+                  </button>
+                ))}
+                <div className="border-t border-line" />
                 <button
                   onClick={handleSignOut}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.75rem 1rem',
-                    color: '#f87171',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#1f2937'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                  className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-card2 transition flex items-center gap-2.5"
                 >
-                  🚪 Sign Out
+                  <LogOut size={15} /> Sign Out
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Mobile Menu Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="mobile-nav">
-          {/* Hamburger Button */}
+        {/* Mobile: hamburger + avatar */}
+        <div className="flex md:hidden items-center gap-3">
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-              padding: '0.5rem',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              position: 'relative'
-            }}
+            className="relative p-2 text-ink"
+            aria-label="Menu"
           >
-            <div style={{ width: '1.5rem', height: '2px', background: '#fff', transition: 'all 0.3s' }}></div>
-            <div style={{ width: '1.5rem', height: '2px', background: '#fff', transition: 'all 0.3s' }}></div>
-            <div style={{ width: '1.5rem', height: '2px', background: '#fff', transition: 'all 0.3s' }}></div>
-            {unreadCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '0',
-                right: '0',
-                background: '#ef4444',
-                color: '#fff',
-                borderRadius: '9999px',
-                padding: '0.125rem 0.375rem',
-                fontSize: '0.625rem',
-                fontWeight: 'bold'
-              }}>
+            {showMobileMenu ? <X size={22} /> : <Menu size={22} />}
+            {unreadCount > 0 && !showMobileMenu && (
+              <span className="absolute top-0.5 right-0.5 bg-brand text-ink rounded-full px-1 py-0.5 text-[10px] font-bold leading-none">
                 {unreadCount}
               </span>
             )}
           </button>
 
-          {/* User Avatar */}
-          <button
-            onClick={() => router.push('/profile')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.25rem',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={() => router.push('/profile')} className="flex-none">
             {userProfile?.profileImage ? (
-              <img 
-                src={userProfile.profileImage} 
+              <img
+                src={userProfile.profileImage}
                 alt={userProfile.displayName || 'Profile'}
-                style={{
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: '9999px',
-                  objectFit: 'cover',
-                  border: '2px solid #f97316'
-                }}
+                className="w-8 h-8 rounded-full object-cover border border-line"
               />
             ) : (
-              <div style={{
-                width: '2rem',
-                height: '2rem',
-                borderRadius: '9999px',
-                background: '#1f2937',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1rem',
-                border: '2px solid #f97316'
-              }}>
-                👤
+              <div className="w-8 h-8 rounded-full bg-card2 border border-line flex items-center justify-center">
+                <User size={15} className="text-muted" />
               </div>
             )}
           </button>
         </div>
-
-        {/* Mobile Menu Overlay */}
-        {showMobileMenu && (
-          <div 
-            style={{
-              position: 'fixed',
-              top: '4rem',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0, 0, 0, 0.95)',
-              zIndex: 40,
-              padding: '1.5rem',
-              overflowY: 'auto'
-            }}
-            onClick={() => setShowMobileMenu(false)}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {navItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    setShowMobileMenu(false);
-                    router.push(item.path);
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '1rem',
-                    background: '#111827',
-                    border: '1px solid #374151',
-                    borderRadius: '0.5rem',
-                    color: '#fff',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {item.label}
-                  {item.badge > 0 && (
-                    <span style={{
-                      background: '#ef4444',
-                      color: '#fff',
-                      borderRadius: '9999px',
-                      padding: '0.25rem 0.5rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold'
-                    }}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-
-              <div style={{ borderTop: '1px solid #374151', margin: '1rem 0' }}></div>
-
-              <button
-                onClick={() => {
-                  setShowMobileMenu(false);
-                  router.push('/profile');
-                }}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '1rem',
-                  background: '#111827',
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem',
-                  color: '#fff',
-                  fontSize: '1.125rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                👤 My Profile
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowMobileMenu(false);
-                  router.push('/create-club');
-                }}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '1rem',
-                  background: '#111827',
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem',
-                  color: '#fff',
-                  fontSize: '1.125rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                👥 Create Club
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowMobileMenu(false);
-                  router.push('/settings');
-                }}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '1rem',
-                  background: '#111827',
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem',
-                  color: '#fff',
-                  fontSize: '1.125rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                ⚙️ Settings
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowMobileMenu(false);
-                  handleSignOut();
-                }}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '1rem',
-                  background: '#111827',
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem',
-                  color: '#f87171',
-                  fontSize: '1.125rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                🚪 Sign Out
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      <style jsx>{`
-        @media (min-width: 768px) {
-          .desktop-nav {
-            display: flex !important;
-          }
-          .mobile-nav {
-            display: none !important;
-          }
-        }
-        @media (max-width: 767px) {
-          .desktop-nav {
-            display: none !important;
-          }
-          .mobile-nav {
-            display: flex !important;
-          }
-        }
-      `}</style>
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <div
+          className="md:hidden fixed inset-x-0 top-16 bottom-0 bg-ground/95 backdrop-blur z-40 p-5 overflow-y-auto"
+          onClick={() => setShowMobileMenu(false)}
+        >
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => {
+                setShowMobileMenu(false);
+                router.push('/create');
+              }}
+              className="w-full p-4 bg-brand text-ink rounded-xl text-base font-bold text-left"
+            >
+              + Create Session
+            </button>
+
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  router.push(item.path);
+                }}
+                className="w-full p-4 bg-card border border-line rounded-xl text-ink text-base font-semibold flex items-center justify-between"
+              >
+                {item.label}
+                <Badge count={item.badge} />
+              </button>
+            ))}
+
+            <div className="border-t border-line my-2" />
+
+            {menuItems.map(({ label, path, icon: Icon }) => (
+              <button
+                key={path}
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  router.push(path);
+                }}
+                className="w-full p-4 bg-card border border-line rounded-xl text-ink text-base font-semibold flex items-center gap-3"
+              >
+                <Icon size={17} className="text-muted" /> {label}
+              </button>
+            ))}
+
+            <button
+              onClick={() => {
+                setShowMobileMenu(false);
+                handleSignOut();
+              }}
+              className="w-full p-4 bg-card border border-line rounded-xl text-red-400 text-base font-semibold flex items-center gap-3"
+            >
+              <LogOut size={17} /> Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

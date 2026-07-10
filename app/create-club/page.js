@@ -99,19 +99,19 @@ export default function CreateClub() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
   }
 
   if (hasExistingClub) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-ground">
         <Navigation user={user} />
         <div className="max-w-3xl mx-auto px-4 md:px-6 py-12 text-center">
-          <h1 className="text-3xl font-black text-white mb-4">Club Limit Reached</h1>
-          <p className="text-gray-400 mb-8">You can only create 1 club per account.</p>
+          <h1 className="text-3xl font-black text-ink mb-4">Club Limit Reached</h1>
+          <p className="text-muted mb-8">You can only create 1 club per account.</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition"
+            className="bg-brand text-ink px-6 py-3 rounded-lg hover:bg-brand-hover transition"
           >
             Go to Dashboard
           </button>
@@ -121,25 +121,25 @@ export default function CreateClub() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">Create a Club</h1>
-          <p className="text-gray-400 text-base md:text-lg">Build your training community</p>
+          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">Create a Club</h1>
+          <p className="text-muted text-base md:text-lg">Build your training community</p>
         </div>
 
-        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6">
-          <p className="text-orange-400 text-sm">
+        <div className="bg-brand/10 border border-brand/30 rounded-xl p-4 mb-6">
+          <p className="text-brand-soft text-sm">
             ℹ️ Your club will be reviewed before being published. You'll be notified once it's approved.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8">
+        <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-line p-6 md:p-8">
           {/* Club Name */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-soft mb-2">
               Club Name *
             </label>
             <input
@@ -147,14 +147,14 @@ export default function CreateClub() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Clapham Runners"
-              className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 bg-ground border border-line rounded-lg text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand"
               required
             />
           </div>
 
           {/* Activity Type */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-soft mb-2">
               Activity Type *
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -165,8 +165,8 @@ export default function CreateClub() {
                   onClick={() => setFormData({ ...formData, activity_type: type })}
                   className={`p-4 rounded-xl border-2 font-semibold capitalize transition ${
                     formData.activity_type === type
-                      ? 'bg-orange-500 border-orange-500 text-white'
-                      : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                      ? 'bg-brand border-brand text-ink'
+                      : 'bg-ground border-line text-soft hover:border-brand/40'
                   }`}
                 >
                   {type === 'running' ? '🏃' : type === 'cycling' ? '🚴' : '🏊'} {type}
@@ -177,7 +177,7 @@ export default function CreateClub() {
 
           {/* Location */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-soft mb-2">
               Main Location *
             </label>
             <input
@@ -185,14 +185,14 @@ export default function CreateClub() {
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="e.g., Clapham Common, London"
-              className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 bg-ground border border-line rounded-lg text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand"
               required
             />
           </div>
 
           {/* Description */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-soft mb-2">
               Description *
             </label>
             <textarea
@@ -200,21 +200,21 @@ export default function CreateClub() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe your club, who can join, what to expect..."
               rows={6}
-              className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 bg-ground border border-line rounded-lg text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand"
               required
             />
           </div>
 
           {/* Cover Image */}
           <div className="mb-8">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-soft mb-2">
               Cover Image (Optional)
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white hover:file:bg-orange-600 file:cursor-pointer"
+              className="w-full p-3 bg-ground border border-line rounded-lg text-ink file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-brand file:text-ink hover:file:bg-brand-hover file:cursor-pointer"
             />
             {coverImagePreview && (
               <div className="mt-4">
@@ -231,7 +231,7 @@ export default function CreateClub() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition disabled:bg-gray-700 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-ink py-4 rounded-xl font-bold text-lg hover:bg-brand-hover transition disabled:bg-card2 disabled:cursor-not-allowed"
           >
             {submitting ? 'Creating Club...' : 'Create Club'}
           </button>

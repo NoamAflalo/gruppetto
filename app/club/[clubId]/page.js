@@ -145,7 +145,7 @@ export default function ClubPage({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="min-h-screen flex items-center justify-center bg-ground text-ink">
         Loading...
       </div>
     );
@@ -160,7 +160,7 @@ export default function ClubPage({ params }) {
   const isAdmin = club.admins?.includes(user?.uid);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-8">
@@ -176,30 +176,30 @@ export default function ClubPage({ params }) {
         )}
 
         {/* Club Header */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8 mb-6">
+        <div className="bg-card rounded-2xl border border-line p-6 md:p-8 mb-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-4xl">{getActivityEmoji(club.activity_type)}</span>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-3xl md:text-4xl font-black text-white">{club.name}</h1>
+                    <h1 className="text-3xl md:text-4xl font-black text-ink">{club.name}</h1>
                     {club.isFeatured && (
-                      <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
+                      <span className="px-3 py-1 bg-brand text-ink rounded-full text-xs font-bold">
                         ✓ VERIFIED
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-400 text-sm md:text-base mt-1">
+                  <p className="text-muted text-sm md:text-base mt-1">
                     {club.activity_type.charAt(0).toUpperCase() + club.activity_type.slice(1)} Club
                   </p>
                 </div>
               </div>
               
-              <div className="space-y-2 text-gray-300 mb-4">
+              <div className="space-y-2 text-soft mb-4">
                 <p>📍 {club.location}</p>
                 <p>👥 {club.member_count || 1} members</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted">
                   Created {new Date(club.created_at?.toDate()).toLocaleDateString()}
                 </p>
               </div>
@@ -210,8 +210,8 @@ export default function ClubPage({ params }) {
               onClick={handleJoinLeave}
               className={`w-full md:w-auto px-8 py-3 rounded-lg font-semibold transition ${
                 isMember
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-orange-500 text-white hover:bg-orange-600'
+                  ? 'bg-red-500 text-ink hover:bg-red-600'
+                  : 'bg-brand text-ink hover:bg-brand-hover'
               }`}
             >
               {isMember ? 'Leave Club' : 'Join Club'}
@@ -219,49 +219,49 @@ export default function ClubPage({ params }) {
           </div>
 
           {/* About */}
-          <div className="border-t border-gray-800 pt-6">
-            <h2 className="text-xl font-bold text-white mb-3">About</h2>
-            <p className="text-gray-300 leading-relaxed">{club.description}</p>
+          <div className="border-t border-line pt-6">
+            <h2 className="text-xl font-bold text-ink mb-3">About</h2>
+            <p className="text-soft leading-relaxed">{club.description}</p>
           </div>
         </div>
 
         {/* Members */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8 mb-6">
-          <h2 className="text-2xl font-bold text-white mb-6">
+        <div className="bg-card rounded-2xl border border-line p-6 md:p-8 mb-6">
+          <h2 className="text-2xl font-bold text-ink mb-6">
             Members ({members.length})
           </h2>
           
           {members.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">No members yet</p>
+            <p className="text-muted text-center py-8">No members yet</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {members.map((member) => (
                 <div
                   key={member.id}
                   onClick={() => router.push(`/profile/${member.id}`)}
-                  className="bg-black rounded-xl border border-gray-800 p-4 hover:border-orange-500/50 transition cursor-pointer"
+                  className="bg-ground rounded-xl border border-line p-4 hover:border-brand/50 transition cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     {member.profileImage ? (
                       <img 
                         src={member.profileImage} 
                         alt={member.displayName}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-orange-500"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-brand"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-xl border-2 border-orange-500">
+                      <div className="w-12 h-12 rounded-full bg-card2 flex items-center justify-center text-xl border-2 border-brand">
                         👤
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-semibold truncate">
+                      <p className="text-ink font-semibold truncate">
                         {member.displayName || 'User'}
                         {member.id === club.founder_id && (
-                          <span className="ml-2 text-xs text-orange-500">★ Founder</span>
+                          <span className="ml-2 text-xs text-brand">★ Founder</span>
                         )}
                       </p>
                       {member.fitnessLevel && (
-                        <p className="text-xs text-gray-500 capitalize">{member.fitnessLevel}</p>
+                        <p className="text-xs text-muted capitalize">{member.fitnessLevel}</p>
                       )}
                     </div>
                   </div>
@@ -272,15 +272,15 @@ export default function ClubPage({ params }) {
         </div>
 
         {/* Upcoming Sessions */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8">
+        <div className="bg-card rounded-2xl border border-line p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-ink">
               Upcoming Sessions ({sessions.length})
             </h2>
             {(isFounder || isAdmin) && (
               <button
                 onClick={() => router.push(`/create?clubId=${clubId}`)}
-                className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 font-semibold transition text-sm"
+                className="bg-brand text-ink px-4 py-2 rounded-lg hover:bg-brand-hover font-semibold transition text-sm"
               >
                 + Create Session
               </button>
@@ -289,11 +289,11 @@ export default function ClubPage({ params }) {
           
           {sessions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-400 mb-4">No upcoming sessions yet</p>
+              <p className="text-muted mb-4">No upcoming sessions yet</p>
               {(isFounder || isAdmin) && (
                 <button
                   onClick={() => router.push(`/create?clubId=${clubId}`)}
-                  className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition"
+                  className="bg-brand text-ink px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
                 >
                   Create First Session
                 </button>
@@ -305,13 +305,13 @@ export default function ClubPage({ params }) {
                 <div
                   key={session.id}
                   onClick={() => router.push(`/session/${session.id}`)}
-                  className="bg-black rounded-xl border border-gray-800 p-4 hover:border-orange-500/50 transition cursor-pointer"
+                  className="bg-ground rounded-xl border border-line p-4 hover:border-brand/50 transition cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-3xl">{getActivityEmoji(session.activity_type)}</span>
                     <div className="flex-1">
-                      <h3 className="text-lg font-bold text-white mb-1">{session.title}</h3>
-                      <div className="space-y-1 text-sm text-gray-400">
+                      <h3 className="text-lg font-bold text-ink mb-1">{session.title}</h3>
+                      <div className="space-y-1 text-sm text-muted">
                         <p>📅 {session.date} • {session.time}</p>
                         <p>📍 {session.location}</p>
                         <p>👥 {session.participants?.length || 0} joined</p>

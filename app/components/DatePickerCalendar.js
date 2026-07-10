@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { CalendarDays } from 'lucide-react';
 
 // Calendar-based date picker used by the browse filters (size="base") and the
 // create-session form (size="lg", slightly larger paddings/rounding).
@@ -105,12 +106,12 @@ export default function DatePickerCalendar({ value, onChange, minDate, label, re
         onClick={() => !disabled && selectDay(day)}
         className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
           selected
-            ? 'bg-orange-500 text-white'
+            ? 'bg-brand text-ink'
             : today
-              ? 'bg-orange-500/20 text-orange-400 border border-orange-500'
+              ? 'bg-brand/20 text-brand-soft border border-brand'
               : disabled
-                ? 'text-gray-600 cursor-not-allowed'
-                : 'text-gray-300 hover:bg-gray-700'
+                ? 'text-muted/70 cursor-not-allowed'
+                : 'text-soft hover:bg-card2'
         }`}
       >
         {day}
@@ -119,13 +120,13 @@ export default function DatePickerCalendar({ value, onChange, minDate, label, re
   }
 
   const buttonClass = size === 'lg'
-    ? 'w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-left flex items-center justify-between text-base'
-    : 'w-full p-3 bg-black border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-left flex items-center justify-between';
+    ? 'w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-left flex items-center justify-between text-base'
+    : 'w-full p-3 bg-ground border border-line rounded-lg text-ink focus:outline-none focus:ring-2 focus:ring-brand text-left flex items-center justify-between';
 
   return (
     <div ref={containerRef} className="relative">
       {label && (
-        <label className="block text-sm font-semibold text-gray-300 mb-2">
+        <label className="block text-sm font-semibold text-soft mb-2">
           {label} {required && '*'}
         </label>
       )}
@@ -134,30 +135,30 @@ export default function DatePickerCalendar({ value, onChange, minDate, label, re
         onClick={() => setIsOpen(!isOpen)}
         className={buttonClass}
       >
-        <span className={value ? 'text-white' : 'text-gray-500'}>
+        <span className={value ? 'text-ink' : 'text-muted'}>
           {formatDisplayDate(value)}
         </span>
-        <span className="text-gray-400">📅</span>
+        <CalendarDays size={16} className="text-muted flex-none" />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-xl min-w-[280px]">
+        <div className="absolute z-50 mt-2 bg-card border border-line rounded-xl p-4 shadow-xl min-w-[280px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
               onClick={goToPreviousMonth}
-              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+              className="p-1 hover:bg-card2 rounded text-muted hover:text-ink"
             >
               ←
             </button>
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-ink">
               {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
             <button
               type="button"
               onClick={goToNextMonth}
-              className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+              className="p-1 hover:bg-card2 rounded text-muted hover:text-ink"
             >
               →
             </button>
@@ -166,7 +167,7 @@ export default function DatePickerCalendar({ value, onChange, minDate, label, re
           {/* Days header */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
-              <div key={d} className="w-8 h-6 text-center text-xs text-gray-500 font-medium">
+              <div key={d} className="w-8 h-6 text-center text-xs text-muted font-medium">
                 {d}
               </div>
             ))}
@@ -188,7 +189,7 @@ export default function DatePickerCalendar({ value, onChange, minDate, label, re
                 setIsOpen(false);
               }
             }}
-            className="w-full mt-3 py-2 text-sm text-orange-500 hover:text-orange-400 font-medium"
+            className="w-full mt-3 py-2 text-sm text-brand hover:text-brand-soft font-medium"
           >
             Today
           </button>

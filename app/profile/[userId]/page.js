@@ -90,60 +90,60 @@ export default function UserProfile() {
   }, [userId]);
 
   if (loading || !profile) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">{profile.displayName || 'User Profile'}</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">{profile.displayName || 'User Profile'}</h1>
           {profile.location && (
-            <p className="text-gray-400 text-base md:text-lg">📍 {profile.location}</p>
+            <p className="text-muted text-base md:text-lg">📍 {profile.location}</p>
           )}
         </div>
 
         {/* Stats Section */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-6 mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-4">📊 Stats</h2>
+        <div className="bg-card rounded-2xl border border-line p-4 md:p-6 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-ink mb-4">📊 Stats</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-black rounded-xl p-4 border border-gray-800">
-              <div className="text-2xl md:text-3xl font-black text-orange-500 mb-1">
+            <div className="bg-ground rounded-xl p-4 border border-line">
+              <div className="text-2xl md:text-3xl font-black text-brand mb-1">
                 {stats.sessionsJoined}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Sessions Joined</div>
+              <div className="text-xs md:text-sm text-muted">Sessions Joined</div>
             </div>
             
-            <div className="bg-black rounded-xl p-4 border border-gray-800">
+            <div className="bg-ground rounded-xl p-4 border border-line">
               <div className="text-2xl md:text-3xl font-black text-green-500 mb-1">
                 {stats.sessionsHosted}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Sessions Hosted</div>
+              <div className="text-xs md:text-sm text-muted">Sessions Hosted</div>
             </div>
             
-            <div className="bg-black rounded-xl p-4 border border-gray-800 col-span-2 md:col-span-1">
+            <div className="bg-ground rounded-xl p-4 border border-line col-span-2 md:col-span-1">
               <div className="text-2xl md:text-3xl font-black text-blue-500 mb-1">
                 {stats.memberSince 
                   ? new Date(stats.memberSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
                   : '...'
                 }
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Member Since</div>
+              <div className="text-xs md:text-sm text-muted">Member Since</div>
             </div>
           </div>
         </div>
 
         {/* Profile Info */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8">
+        <div className="bg-card rounded-2xl border border-line p-4 md:p-8">
           {/* Profile Image */}
           {profile.profileImage && (
             <div className="flex justify-center mb-6 md:mb-8">
               <img 
                 src={profile.profileImage} 
                 alt={profile.displayName}
-                className="rounded-full object-cover border-4 border-orange-500"
+                className="rounded-full object-cover border-4 border-brand"
                 style={{ width: '10rem', height: '10rem' }}
               />
             </div>
@@ -152,16 +152,16 @@ export default function UserProfile() {
           {/* Bio */}
           {profile.bio && (
             <div className="mb-6">
-              <h3 className="text-lg md:text-xl font-bold text-white mb-2">About</h3>
-              <p className="text-gray-300 text-sm md:text-base leading-relaxed">{profile.bio}</p>
+              <h3 className="text-lg md:text-xl font-bold text-ink mb-2">About</h3>
+              <p className="text-soft text-sm md:text-base leading-relaxed">{profile.bio}</p>
             </div>
           )}
 
           {/* Training Goals */}
           {profile.goals && (
             <div className="mb-6">
-              <h3 className="text-lg md:text-xl font-bold text-white mb-2">🎯 Training Goals</h3>
-              <p className="text-gray-300 text-sm md:text-base leading-relaxed">{profile.goals}</p>
+              <h3 className="text-lg md:text-xl font-bold text-ink mb-2">🎯 Training Goals</h3>
+              <p className="text-soft text-sm md:text-base leading-relaxed">{profile.goals}</p>
             </div>
           )}
 
@@ -170,8 +170,8 @@ export default function UserProfile() {
             {/* NOUVEAU - Gender Display */}
             {profile.gender && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Gender</h3>
-                <p className="text-white capitalize text-sm md:text-base">
+                <h3 className="text-sm font-semibold text-muted mb-2">Gender</h3>
+                <p className="text-ink capitalize text-sm md:text-base">
                   {profile.gender === 'female' ? '👩 Female' : '👨 Male'}
                 </p>
               </div>
@@ -179,17 +179,17 @@ export default function UserProfile() {
 
             {profile.fitnessLevel && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Fitness Level</h3>
-                <p className="text-white capitalize text-sm md:text-base">{profile.fitnessLevel}</p>
+                <h3 className="text-sm font-semibold text-muted mb-2">Fitness Level</h3>
+                <p className="text-ink capitalize text-sm md:text-base">{profile.fitnessLevel}</p>
               </div>
             )}
 
             {profile.activities && profile.activities.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Activities</h3>
+                <h3 className="text-sm font-semibold text-muted mb-2">Activities</h3>
                 <div className="flex gap-2 flex-wrap">
                   {profile.activities.map((activity) => (
-                    <span key={activity} className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs md:text-sm font-semibold capitalize">
+                    <span key={activity} className="px-3 py-1 bg-brand/20 text-brand-soft rounded-full text-xs md:text-sm font-semibold capitalize">
                       {activity === 'running' && '🏃 '}
                       {activity === 'cycling' && '🚴 '}
                       {activity === 'swimming' && '🏊 '}
@@ -202,15 +202,15 @@ export default function UserProfile() {
 
             {profile.preferredPace && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Preferred Pace</h3>
-                <p className="text-white text-sm md:text-base">{profile.preferredPace}</p>
+                <h3 className="text-sm font-semibold text-muted mb-2">Preferred Pace</h3>
+                <p className="text-ink text-sm md:text-base">{profile.preferredPace}</p>
               </div>
             )}
 
             {profile.location && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Location</h3>
-                <p className="text-white text-sm md:text-base">{profile.location}</p>
+                <h3 className="text-sm font-semibold text-muted mb-2">Location</h3>
+                <p className="text-ink text-sm md:text-base">{profile.location}</p>
               </div>
             )}
           </div>

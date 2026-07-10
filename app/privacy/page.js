@@ -15,15 +15,15 @@ export default function Privacy() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
-        <h1 className="text-3xl md:text-4xl font-black text-white mb-8">Privacy Policy</h1>
+        <h1 className="text-3xl md:text-4xl font-black text-ink mb-8">Privacy Policy</h1>
         
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 md:p-8 space-y-6 text-gray-300">
+        <div className="bg-card rounded-2xl border border-line p-6 md:p-8 space-y-6 text-soft">
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">1. Information We Collect</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">1. Information We Collect</h2>
             <p>When you use Gruppetto, we collect:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Account Information:</strong> Email address, display name, profile picture</li>
@@ -34,7 +34,7 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">2. How We Use Your Information</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">2. How We Use Your Information</h2>
             <p>We use your information to:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li>Provide and improve the Service</li>
@@ -46,7 +46,7 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">3. Information Sharing</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">3. Information Sharing</h2>
             <p>Your information is visible to:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Other Users:</strong> Your profile, sessions, and chat messages are visible to other Gruppetto users</li>
@@ -56,7 +56,7 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">4. Third-Party Services</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">4. Third-Party Services</h2>
             <p>We use the following third-party services:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Firebase (Google):</strong> Authentication, database, file storage</li>
@@ -67,7 +67,7 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">5. Data Storage & Security</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">5. Data Storage & Security</h2>
             <p>We take security seriously:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li>Data is stored securely on Firebase servers (EU/US regions)</li>
@@ -78,7 +78,7 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">6. Your Rights (GDPR)</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">6. Your Rights (GDPR)</h2>
             <p>If you're in the EU, you have the right to:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Access:</strong> Request a copy of your data</li>
@@ -86,11 +86,11 @@ export default function Privacy() {
               <li><strong>Erasure:</strong> Request deletion of your account and data</li>
               <li><strong>Portability:</strong> Receive your data in a machine-readable format</li>
             </ul>
-            <p className="mt-3">To exercise these rights, email: <a href="mailto:privacy@getgruppetto.com" className="text-orange-500 hover:underline">privacy@getgruppetto.com</a></p>
+            <p className="mt-3">To exercise these rights, email: <a href="mailto:privacy@getgruppetto.com" className="text-brand hover:underline">privacy@getgruppetto.com</a></p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">7. Cookies & Tracking</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">7. Cookies & Tracking</h2>
             <p>We use:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Essential Cookies:</strong> Required for authentication and core functionality</li>
@@ -100,26 +100,26 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">8. Children's Privacy</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">8. Children's Privacy</h2>
             <p>Gruppetto is not intended for users under 16. We do not knowingly collect data from children. If you believe a child has created an account, please contact us.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">9. Changes to Privacy Policy</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">9. Changes to Privacy Policy</h2>
             <p>We may update this policy from time to time. We'll notify users of significant changes via email or in-app notification.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">10. Contact Us</h2>
+            <h2 className="text-xl font-bold text-ink mb-3">10. Contact Us</h2>
             <p>For privacy questions or concerns:</p>
             <p className="mt-2">
-              Email: <a href="mailto:noamaflalo@gmail.com" className="text-orange-500 hover:underline">noamaflalo@gmail.com</a><br/>
+              Email: <a href="mailto:noamaflalo@gmail.com" className="text-brand hover:underline">noamaflalo@gmail.com</a><br/>
               Address: London, United Kingdom
             </p>
           </section>
 
-          <div className="pt-6 border-t border-gray-800">
-            <p className="text-sm text-gray-500">Last updated: December 31, 2025</p>
+          <div className="pt-6 border-t border-line">
+            <p className="text-sm text-muted">Last updated: December 31, 2025</p>
           </div>
         </div>
       </div>

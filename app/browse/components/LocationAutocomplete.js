@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { MapPin, Waves } from 'lucide-react';
 import { londonLocations, getPools, getNonPools } from '@/lib/londonLocations';
 
 export default function LocationAutocomplete({ value, onChange, activityFilter, placeholder }) {
@@ -75,13 +76,13 @@ export default function LocationAutocomplete({ value, onChange, activityFilter, 
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder || "Search location..."}
-          className="w-full p-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 pr-10"
+          className="w-full p-3 bg-ground border border-line rounded-lg text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand pr-10"
         />
         {searchTerm && (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
           >
             ✕
           </button>
@@ -89,13 +90,13 @@ export default function LocationAutocomplete({ value, onChange, activityFilter, 
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full bg-gray-900 border border-gray-700 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+        <div className="absolute z-50 mt-2 w-full bg-card border border-line rounded-xl shadow-xl max-h-64 overflow-y-auto">
           {Object.keys(groupedLocations).length === 0 ? (
-            <div className="p-3 text-gray-500 text-sm">No locations found</div>
+            <div className="p-3 text-muted text-sm">No locations found</div>
           ) : (
             Object.entries(groupedLocations).map(([area, locs]) => (
               <div key={area}>
-                <div className="px-3 py-2 bg-gray-800 text-xs font-semibold text-gray-400 uppercase sticky top-0">
+                <div className="px-3 py-2 bg-card2 text-xs font-semibold text-muted uppercase sticky top-0">
                   {area}
                 </div>
                 {locs.map((loc) => (
@@ -103,11 +104,13 @@ export default function LocationAutocomplete({ value, onChange, activityFilter, 
                     key={loc.name}
                     type="button"
                     onClick={() => handleSelect(loc.name)}
-                    className={`w-full px-3 py-2 text-left text-sm transition hover:bg-gray-800 flex items-center gap-2 ${
-                      searchTerm === loc.name ? 'bg-orange-500/20 text-orange-400' : 'text-gray-300'
+                    className={`w-full px-3 py-2 text-left text-sm transition hover:bg-card2 flex items-center gap-2 ${
+                      searchTerm === loc.name ? 'bg-brand/20 text-brand-soft' : 'text-soft'
                     }`}
                   >
-                    <span>{loc.type === 'pool' ? '🏊' : '📍'}</span>
+                    {loc.type === 'pool'
+                      ? <Waves size={13} className="text-muted flex-none" />
+                      : <MapPin size={13} className="text-muted flex-none" />}
                     <span>{loc.name}</span>
                   </button>
                 ))}

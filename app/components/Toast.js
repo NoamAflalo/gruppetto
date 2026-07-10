@@ -30,11 +30,11 @@ export default function Toast({ message, type = 'error', onClose }) {
         <div className="flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">{icons[type]}</span>
           <div className="flex-1">
-            <p className="text-white font-semibold text-sm">{message}</p>
+            <p className="text-ink font-semibold text-sm">{message}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:text-gray-200 text-xl leading-none flex-shrink-0"
+            className="text-ink hover:text-soft text-xl leading-none flex-shrink-0"
           >
             ×
           </button>

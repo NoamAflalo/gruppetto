@@ -1,24 +1,49 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { getActivityEmoji, getIntensityColor } from '@/lib/sessionUi';
+import { Calendar, Clock, MapPin, Ruler, Users, User, Lock } from 'lucide-react';
+import { getIntensityColor } from '@/lib/sessionUi';
+import ActivityIcon from '../../components/ActivityIcon';
 
-function SessionBadges({ session, sizeClass = 'px-3 md:px-4 py-1 text-xs md:text-sm' }) {
+function SessionBadges({ session, sizeClass = 'px-3 py-1 text-xs' }) {
   return (
     <>
-      <span className={`${sizeClass} rounded-full font-semibold border ${getIntensityColor(session.intensity)}`}>
+      <span className={`${sizeClass} rounded-full font-semibold uppercase tracking-wide border ${getIntensityColor(session.intensity)}`}>
         {session.intensity}
       </span>
       {session.isPrivate && (
-        <span className={`${sizeClass} rounded-full font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30`}>
-          🔒 Private
+        <span className={`${sizeClass} rounded-full font-semibold uppercase tracking-wide bg-card2 text-soft border border-line inline-flex items-center gap-1`}>
+          <Lock size={11} /> Private
         </span>
       )}
       {session.girlsOnly && (
-        <span className={`${sizeClass} rounded-full font-semibold bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 text-pink-400`}>
-          👭 Girls Only
+        <span className={`${sizeClass} rounded-full font-semibold uppercase tracking-wide bg-pink-500/10 border border-pink-500/40 text-pink-400`}>
+          Girls only
         </span>
       )}
     </>
+  );
+}
+
+function MetaItem({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Icon size={15} className="text-muted flex-none" />
+      {children}
+    </span>
+  );
+}
+
+function Avatar({ profile, size = 'w-8 h-8', ring = 'border-line' }) {
+  return profile?.profileImage ? (
+    <img
+      src={profile.profileImage}
+      alt={profile.displayName || 'User'}
+      className={`${size} rounded-full object-cover border-2 ${ring} flex-none`}
+    />
+  ) : (
+    <div className={`${size} rounded-full bg-card2 border-2 ${ring} flex items-center justify-center flex-none`}>
+      <User size={14} className="text-muted" />
+    </div>
   );
 }
 
@@ -32,101 +57,80 @@ export function SessionCard({ session, profiles, userId, isSelected, onJoin }) {
   return (
     <div
       id={`session-${session.id}`}
-      className={`bg-gray-900 rounded-xl border p-4 md:p-8 hover:border-orange-500/50 transition cursor-pointer ${
-        isSelected ? 'border-orange-500' : 'border-gray-800'
+      className={`bg-card rounded-2xl border p-5 md:p-7 hover:border-brand/50 transition cursor-pointer ${
+        isSelected ? 'border-brand' : 'border-line'
       }`}
       onClick={() => router.push(`/session/${session.id}`)}
     >
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
-            <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
-            <h2 className="text-xl md:text-3xl font-bold text-white">{session.title}</h2>
-            <SessionBadges session={session} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-3 mb-3 md:mb-4">
+            <ActivityIcon type={session.activity_type} boxed size={19} boxClass="w-10 h-10 md:w-11 md:h-11" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 md:gap-2.5 flex-wrap">
+                <h2 className="font-display uppercase text-xl md:text-2xl text-ink leading-tight">{session.title}</h2>
+                <SessionBadges session={session} />
+              </div>
+            </div>
           </div>
 
-          <p className="text-gray-400 mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
+          <p className="text-muted mb-4 text-sm md:text-base">{session.description}</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm md:text-base text-gray-300 mb-3 md:mb-4">
-            <div>📅 <strong>Date:</strong> {session.date}</div>
-            <div>🕐 <strong>Time:</strong> {session.time}</div>
-            <div className="sm:col-span-2">📍 <strong>Location:</strong> {session.location}</div>
-            {session.distance && <div>📏 <strong>Distance:</strong> {session.distance}</div>}
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm md:text-[15px] text-soft mb-4">
+            <MetaItem icon={Calendar}>{session.date}</MetaItem>
+            <MetaItem icon={Clock}>{session.time}</MetaItem>
+            <MetaItem icon={MapPin}>{session.location}</MetaItem>
+            {session.distance && <MetaItem icon={Ruler}>{session.distance}</MetaItem>}
           </div>
 
           {/* Host Profile */}
           <div
-            className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 hover:bg-gray-800 p-2 md:p-3 rounded-lg inline-flex transition"
+            className="inline-flex items-center gap-2.5 mb-4 hover:bg-card2 py-1.5 px-2 -mx-2 rounded-lg transition"
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/profile/${session.host_user_id}`);
             }}
           >
-            {hostProfile?.profileImage ? (
-              <img
-                src={hostProfile.profileImage}
-                alt={hostProfile.displayName}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500"
-              />
-            ) : (
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 flex items-center justify-center text-lg md:text-xl border-2 border-orange-500">
-                👤
-              </div>
-            )}
+            <Avatar profile={hostProfile} size="w-9 h-9" ring="border-brand/60" />
             <div>
-              <p className="text-xs md:text-sm font-semibold text-white">
+              <p className="text-xs md:text-sm font-semibold text-ink">
                 Hosted by {hostProfile?.displayName || session.host_email}
               </p>
               {hostProfile?.fitnessLevel && (
-                <p className="text-xs text-gray-500 capitalize">{hostProfile.fitnessLevel}</p>
+                <p className="text-xs text-muted capitalize">{hostProfile.fitnessLevel}</p>
               )}
             </div>
           </div>
 
           {/* Participants */}
-          <div className="mb-2">
-            <p className="text-xs md:text-sm font-semibold text-gray-300 mb-2 md:mb-3">
-              👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
-              {session.max_participants && ` (max: ${session.max_participants})`}
-            </p>
+          <div className="flex items-center gap-3">
             {participantCount > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {session.participants?.slice(0, 5).map((participantId) => {
-                  const profile = profiles[participantId];
-                  return (
-                    <div
-                      key={participantId}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/profile/${participantId}`);
-                      }}
-                      className="cursor-pointer hover:scale-110 transition"
-                      title={profile?.displayName || 'User'}
-                    >
-                      {profile?.profileImage ? (
-                        <img
-                          src={profile.profileImage}
-                          alt={profile.displayName}
-                          className="rounded-full object-cover border-2 border-gray-700 hover:border-orange-500"
-                          style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
-                        />
-                      ) : (
-                        <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs md:text-sm border-2 border-gray-700 hover:border-orange-500"
-                             style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
-                          👤
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="flex -space-x-2">
+                {session.participants?.slice(0, 5).map((participantId) => (
+                  <div
+                    key={participantId}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/profile/${participantId}`);
+                    }}
+                    className="cursor-pointer hover:scale-110 hover:z-10 relative transition"
+                    title={profiles[participantId]?.displayName || 'User'}
+                  >
+                    <Avatar profile={profiles[participantId]} size="w-7 h-7" ring="border-card" />
+                  </div>
+                ))}
                 {participantCount > 5 && (
-                  <div className="rounded-full bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-400 border-2 border-gray-700"
-                       style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
+                  <div className="w-7 h-7 rounded-full bg-card2 border-2 border-card flex items-center justify-center text-[10px] font-semibold text-muted relative">
                     +{participantCount - 5}
                   </div>
                 )}
               </div>
             )}
+            <p className="text-xs md:text-sm text-muted inline-flex items-center gap-1.5">
+              <Users size={14} />
+              {participantCount} going
+              {session.max_participants && ` · max ${session.max_participants}`}
+            </p>
           </div>
         </div>
 
@@ -137,13 +141,13 @@ export function SessionCard({ session, profiles, userId, isSelected, onJoin }) {
             onJoin(session.id, session.participants || []);
           }}
           disabled={!isParticipant && session.max_participants && participantCount >= session.max_participants}
-          className={`w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition ${
+          className={`w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition flex-none ${
             isParticipant
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed'
+              ? 'bg-card2 text-soft border border-line hover:border-red-500/50 hover:text-red-400'
+              : 'bg-brand text-white hover:bg-brand-hover disabled:bg-card2 disabled:text-muted disabled:cursor-not-allowed'
           }`}
         >
-          {isParticipant ? 'Leave' : 'Join'}
+          {isParticipant ? 'Leave' : 'Join session'}
         </button>
       </div>
     </div>
@@ -158,43 +162,33 @@ export function RecommendedSessionCard({ session, userId, onJoin }) {
 
   return (
     <div
-      className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 rounded-xl border-2 border-orange-500/50 p-4 md:p-6 hover:border-orange-500 transition cursor-pointer"
+      className="bg-gradient-to-r from-brand/10 to-brand/5 rounded-2xl border border-brand/40 p-4 md:p-6 hover:border-brand transition cursor-pointer"
       onClick={() => router.push(`/session/${session.id}`)}
     >
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 flex-wrap">
-            <span className="text-2xl md:text-3xl">{getActivityEmoji(session.activity_type)}</span>
-            <h3 className="text-lg md:text-xl font-bold text-white">{session.title}</h3>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getIntensityColor(session.intensity)}`}>
-              {session.intensity}
-            </span>
-            <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
-              MATCH
-            </span>
-            {session.isPrivate && (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                🔒 Private
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-3 mb-3">
+            <ActivityIcon type={session.activity_type} boxed size={17} boxClass="w-9 h-9" />
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <h3 className="font-display uppercase text-lg md:text-xl text-ink leading-tight">{session.title}</h3>
+              <span className="px-2.5 py-0.5 bg-brand text-white rounded-full text-[11px] font-bold tracking-wide">
+                MATCH
               </span>
-            )}
-            {session.girlsOnly && (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 text-pink-400">
-                👭 Girls Only
-              </span>
-            )}
+              <SessionBadges session={session} sizeClass="px-2.5 py-0.5 text-[11px]" />
+            </div>
           </div>
 
-          <p className="text-gray-300 mb-3 text-sm line-clamp-2">{session.description}</p>
+          <p className="text-soft mb-3 text-sm line-clamp-2">{session.description}</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-300 mb-3">
-            <div>📅 {session.date}</div>
-            <div>🕐 {session.time}</div>
-            <div className="sm:col-span-2">📍 {session.location}</div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-soft mb-3">
+            <MetaItem icon={Calendar}>{session.date}</MetaItem>
+            <MetaItem icon={Clock}>{session.time}</MetaItem>
+            <MetaItem icon={MapPin}>{session.location}</MetaItem>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <span>👥 {participantCount} joined</span>
-          </div>
+          <p className="text-xs text-muted inline-flex items-center gap-1.5">
+            <Users size={13} /> {participantCount} going
+          </p>
         </div>
 
         <button
@@ -203,13 +197,13 @@ export function RecommendedSessionCard({ session, userId, onJoin }) {
             onJoin(session.id, session.participants || []);
           }}
           disabled={!isParticipant && session.max_participants && participantCount >= session.max_participants}
-          className={`w-full md:w-auto md:ml-6 px-6 py-3 rounded-lg font-semibold transition ${
+          className={`w-full md:w-auto md:ml-6 px-6 py-3 rounded-lg font-semibold transition flex-none ${
             isParticipant
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed'
+              ? 'bg-card2 text-soft border border-line hover:border-red-500/50 hover:text-red-400'
+              : 'bg-brand text-white hover:bg-brand-hover disabled:bg-card2 disabled:text-muted disabled:cursor-not-allowed'
           }`}
         >
-          {isParticipant ? 'Leave' : 'Join'}
+          {isParticipant ? 'Leave' : 'Join session'}
         </button>
       </div>
     </div>

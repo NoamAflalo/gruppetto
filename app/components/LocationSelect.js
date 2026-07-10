@@ -6,7 +6,7 @@ export default function LocationSelect({ value, onChange, label, required = true
   
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-300 mb-2">
+      <label className="block text-sm font-semibold text-soft mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       
@@ -14,7 +14,7 @@ export default function LocationSelect({ value, onChange, label, required = true
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+        className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-base"
       >
         <option value="">Select location...</option>
         

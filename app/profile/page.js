@@ -275,17 +275,17 @@ export default function Profile() {
   // };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
       
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">Your Profile</h1>
-          <p className="text-gray-400 text-base md:text-lg">Tell others about your fitness journey</p>
+          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">Your Profile</h1>
+          <p className="text-muted text-base md:text-lg">Tell others about your fitness journey</p>
         </div>
 
         {saveMessage && (
@@ -299,39 +299,39 @@ export default function Profile() {
         )}
 
         {/* Stats Section */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-6 mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-4">📊 Your Stats</h2>
+        <div className="bg-card rounded-2xl border border-line p-4 md:p-6 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-ink mb-4">📊 Your Stats</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-black rounded-xl p-4 border border-gray-800">
-              <div className="text-2xl md:text-3xl font-black text-orange-500 mb-1">
+            <div className="bg-ground rounded-xl p-4 border border-line">
+              <div className="text-2xl md:text-3xl font-black text-brand mb-1">
                 {stats.sessionsJoined}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Sessions Joined</div>
+              <div className="text-xs md:text-sm text-muted">Sessions Joined</div>
             </div>
             
-            <div className="bg-black rounded-xl p-4 border border-gray-800">
+            <div className="bg-ground rounded-xl p-4 border border-line">
               <div className="text-2xl md:text-3xl font-black text-green-500 mb-1">
                 {stats.sessionsHosted}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Sessions Hosted</div>
+              <div className="text-xs md:text-sm text-muted">Sessions Hosted</div>
             </div>
             
-            <div className="bg-black rounded-xl p-4 border border-gray-800 col-span-2 md:col-span-1">
+            <div className="bg-ground rounded-xl p-4 border border-line col-span-2 md:col-span-1">
               <div className="text-2xl md:text-3xl font-black text-blue-500 mb-1">
                 {stats.memberSince 
                   ? new Date(stats.memberSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
                   : '...'
                 }
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Member Since</div>
+              <div className="text-xs md:text-sm text-muted">Member Since</div>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-4 md:p-8 space-y-4 md:space-y-6">
+        <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-line p-4 md:p-8 space-y-4 md:space-y-6">
           {/* Profile Image Upload */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Profile Photo</label>
+            <label className="block text-sm font-semibold text-soft mb-3">Profile Photo</label>
             
             <input
               ref={fileInputRef}
@@ -352,29 +352,29 @@ export default function Profile() {
                     <img 
                       src={formData.profileImage} 
                       alt="Profile" 
-                      className="rounded-full object-cover border-4 border-orange-500 group-hover:opacity-80 transition"
+                      className="rounded-full object-cover border-4 border-brand group-hover:opacity-80 transition"
                       style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition">
-                      <span className="text-white text-sm font-semibold">Change Photo</span>
+                    <div className="absolute inset-0 flex items-center justify-center bg-ground/50 rounded-full opacity-0 group-hover:opacity-100 transition">
+                      <span className="text-ink text-sm font-semibold">Change Photo</span>
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-full bg-gray-800 flex flex-col items-center justify-center border-4 border-gray-700 group-hover:border-orange-500 transition"
+                  <div className="rounded-full bg-card2 flex flex-col items-center justify-center border-4 border-line group-hover:border-brand transition"
                        style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}>
                     <div className="text-4xl mb-2">📸</div>
-                    <span className="text-xs text-gray-400">Add Photo</span>
+                    <span className="text-xs text-muted">Add Photo</span>
                   </div>
                 )}
               </div>
 
               <div className="flex-1">
-                <p className="text-sm text-gray-300 mb-2">
+                <p className="text-sm text-soft mb-2">
                   {formData.profileImage ? 'Click on your photo to change it' : 'Click to add a profile photo'}
                 </p>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF or WebP (max 5MB)</p>
+                <p className="text-xs text-muted">PNG, JPG, GIF or WebP (max 5MB)</p>
                 {uploading && (
-                  <p className="text-sm text-orange-500 mt-2">⏳ Uploading...</p>
+                  <p className="text-sm text-brand mt-2">⏳ Uploading...</p>
                 )}
                 {formData.profileImage && (
                   <button
@@ -383,7 +383,7 @@ export default function Profile() {
                       e.stopPropagation();
                       setShowImageModal(true);
                     }}
-                    className="text-sm text-orange-500 hover:text-orange-400 mt-2 inline-block underline"
+                    className="text-sm text-brand hover:text-brand-soft mt-2 inline-block underline"
                   >
                     View full size
                   </button>
@@ -394,13 +394,13 @@ export default function Profile() {
             {/* Image Modal */}
             {showImageModal && (
               <div 
-                className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 bg-ground/90 z-50 flex items-center justify-center p-4"
                 onClick={() => setShowImageModal(false)}
               >
                 <div className="relative max-w-4xl max-h-[90vh]">
                   <button
                     onClick={() => setShowImageModal(false)}
-                    className="absolute top-4 right-4 text-white text-4xl hover:text-orange-500 transition z-10"
+                    className="absolute top-4 right-4 text-ink text-4xl hover:text-brand transition z-10"
                   >
                     ×
                   </button>
@@ -417,29 +417,29 @@ export default function Profile() {
 
           {/* Display Name */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Display Name *</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Display Name *</label>
             <input
               type="text"
               name="displayName"
               value={formData.displayName}
               onChange={handleChange}
               placeholder="Your name"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
               required
             />
           </div>
 
           {/* NOUVEAU - Gender Selection */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Gender</label>
+            <label className="block text-sm font-semibold text-soft mb-3">Gender</label>
             <div className="grid grid-cols-2 gap-2 md:gap-3">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, gender: 'female' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition text-sm md:text-base ${
                   formData.gender === 'female'
-                    ? 'bg-pink-500 border-pink-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                    ? 'bg-pink-500 border-pink-500 text-ink'
+                    : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
                 👩 Female
@@ -449,62 +449,62 @@ export default function Profile() {
                 onClick={() => setFormData({ ...formData, gender: 'male' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition text-sm md:text-base ${
                   formData.gender === 'male'
-                    ? 'bg-blue-500 border-blue-500 text-white'
-                    : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                    ? 'bg-blue-500 border-blue-500 text-ink'
+                    : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
                 👨 Male
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted mt-2">
               💡 Required to access certain features like creating "Girls Only" sessions
             </p>
           </div>
 
           {/* Bio */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Bio</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Bio</label>
             <textarea
               name="bio"
               value={formData.bio}
               onChange={handleChange}
               placeholder="Tell us about yourself..."
               rows="4"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
             />
           </div>
 
           {/* Training Goals */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Training Goals</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Training Goals</label>
             <textarea
               name="goals"
               value={formData.goals}
               onChange={handleChange}
               placeholder="e.g., Training for London Marathon 2025, Sub-20 5K, First triathlon..."
               rows="3"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
             />
-            <p className="text-xs text-gray-500 mt-2">Let others know what you're working towards!</p>
+            <p className="text-xs text-muted mt-2">Let others know what you're working towards!</p>
           </div>
 
           {/* STRAVA - Strava Connection Section - COMMENTÉ */}
           {/* <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Strava Profile</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Strava Profile</label>
             
             {stravaConnected ? (
-              <div className="bg-black rounded-xl border border-green-500/30 p-4">
+              <div className="bg-ground rounded-xl border border-green-500/30 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="#fc4c02">
                       <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
                     </svg>
                     <div>
-                      <p className="text-white font-semibold flex items-center gap-2">
+                      <p className="text-ink font-semibold flex items-center gap-2">
                         Connected to Strava
                         <span className="text-green-400">✓</span>
                       </p>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-muted">
                         {stravaData?.firstname} {stravaData?.lastname}
                       </p>
                     </div>
@@ -521,7 +521,7 @@ export default function Profile() {
                   href={formData.stravaLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-hover to-red-600 text-ink rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
@@ -530,14 +530,14 @@ export default function Profile() {
                 </a>
               </div>
             ) : (
-              <div className="bg-black rounded-xl border border-gray-800 p-4">
-                <p className="text-gray-400 text-sm mb-3">
+              <div className="bg-ground rounded-xl border border-line p-4">
+                <p className="text-muted text-sm mb-3">
                   Connect your Strava account to verify your profile and show your real activities.
                 </p>
                 <button
                   type="button"
                   onClick={handleConnectStrava}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-hover to-red-600 text-ink rounded-xl font-semibold hover:from-orange-700 hover:to-red-700 transition text-sm md:text-base"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
@@ -550,7 +550,7 @@ export default function Profile() {
 
           {/* Fitness Level */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Fitness Level</label>
+            <label className="block text-sm font-semibold text-soft mb-3">Fitness Level</label>
             <div className="grid grid-cols-3 gap-2 md:gap-3">
               {['beginner', 'intermediate', 'advanced'].map((level) => (
                 <button
@@ -559,8 +559,8 @@ export default function Profile() {
                   onClick={() => setFormData({ ...formData, fitnessLevel: level })}
                   className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                     formData.fitnessLevel === level
-                      ? 'bg-orange-500 border-orange-500 text-white'
-                      : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                      ? 'bg-brand border-brand text-ink'
+                      : 'bg-ground border-line text-soft hover:border-brand/40'
                   }`}
                 >
                   {level}
@@ -571,7 +571,7 @@ export default function Profile() {
 
           {/* Activities */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Activities</label>
+            <label className="block text-sm font-semibold text-soft mb-3">Activities</label>
             <div className="grid grid-cols-3 gap-2 md:gap-3">
               {['running', 'cycling', 'swimming'].map((activity) => (
                 <button
@@ -580,8 +580,8 @@ export default function Profile() {
                   onClick={() => handleActivityToggle(activity)}
                   className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                     formData.activities.includes(activity)
-                      ? 'bg-orange-500 border-orange-500 text-white'
-                      : 'bg-black border-gray-700 text-gray-300 hover:border-gray-600'
+                      ? 'bg-brand border-brand text-ink'
+                      : 'bg-ground border-line text-soft hover:border-brand/40'
                   }`}
                 >
                   {activity === 'running' && '🏃 '}
@@ -595,17 +595,17 @@ export default function Profile() {
 
           {/* Skill Ratings */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-3">Rate Your Skills</label>
-            <p className="text-xs text-gray-500 mb-4">
+            <label className="block text-sm font-semibold text-soft mb-3">Rate Your Skills</label>
+            <p className="text-xs text-muted mb-4">
               Help us recommend the right sessions for you. Rate yourself honestly from 1 (beginner) to 5 (expert).
             </p>
             
             <div className="space-y-4">
               {/* Running Rating */}
-              <div className="bg-black rounded-xl p-4 border border-gray-800">
+              <div className="bg-ground rounded-xl p-4 border border-line">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm md:text-base text-white font-semibold">🏃 Running</span>
-                  <span className="text-orange-500 font-bold">{formData.ratings.running}/5</span>
+                  <span className="text-sm md:text-base text-ink font-semibold">🏃 Running</span>
+                  <span className="text-brand font-bold">{formData.ratings.running}/5</span>
                 </div>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((rating) => (
@@ -615,8 +615,8 @@ export default function Profile() {
                       onClick={() => handleRatingChange('running', rating)}
                       className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
                         formData.ratings.running >= rating
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          ? 'bg-brand text-ink'
+                          : 'bg-card2 text-muted hover:bg-card2'
                       }`}
                     >
                       {rating}
@@ -626,10 +626,10 @@ export default function Profile() {
               </div>
 
               {/* Cycling Rating */}
-              <div className="bg-black rounded-xl p-4 border border-gray-800">
+              <div className="bg-ground rounded-xl p-4 border border-line">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm md:text-base text-white font-semibold">🚴 Cycling</span>
-                  <span className="text-orange-500 font-bold">{formData.ratings.cycling}/5</span>
+                  <span className="text-sm md:text-base text-ink font-semibold">🚴 Cycling</span>
+                  <span className="text-brand font-bold">{formData.ratings.cycling}/5</span>
                 </div>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((rating) => (
@@ -639,8 +639,8 @@ export default function Profile() {
                       onClick={() => handleRatingChange('cycling', rating)}
                       className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
                         formData.ratings.cycling >= rating
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          ? 'bg-brand text-ink'
+                          : 'bg-card2 text-muted hover:bg-card2'
                       }`}
                     >
                       {rating}
@@ -650,10 +650,10 @@ export default function Profile() {
               </div>
 
               {/* Swimming Rating */}
-              <div className="bg-black rounded-xl p-4 border border-gray-800">
+              <div className="bg-ground rounded-xl p-4 border border-line">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm md:text-base text-white font-semibold">🏊 Swimming</span>
-                  <span className="text-orange-500 font-bold">{formData.ratings.swimming}/5</span>
+                  <span className="text-sm md:text-base text-ink font-semibold">🏊 Swimming</span>
+                  <span className="text-brand font-bold">{formData.ratings.swimming}/5</span>
                 </div>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((rating) => (
@@ -663,8 +663,8 @@ export default function Profile() {
                       onClick={() => handleRatingChange('swimming', rating)}
                       className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
                         formData.ratings.swimming >= rating
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          ? 'bg-brand text-ink'
+                          : 'bg-card2 text-muted hover:bg-card2'
                       }`}
                     >
                       {rating}
@@ -674,8 +674,8 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-              <p className="text-xs md:text-sm text-blue-400">
+            <div className="mt-4 bg-brand/5 border border-brand/20 rounded-lg p-3">
+              <p className="text-xs md:text-sm text-soft">
                 💡 <strong>Tip:</strong> 1-2 = Beginner | 3 = Intermediate | 4-5 = Advanced
               </p>
             </div>
@@ -683,25 +683,25 @@ export default function Profile() {
 
           {/* Preferred Pace */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Preferred Running Pace</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Preferred Running Pace</label>
             <input
               type="text"
               name="preferredPace"
               value={formData.preferredPace}
               onChange={handleChange}
               placeholder="e.g., 5:30 min/km, 9:00 min/mile"
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink placeholder-muted/60 focus:outline-none focus:ring-2 focus:ring-brand text-base"
             />
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Location</label>
+            <label className="block text-sm font-semibold text-soft mb-2">Location</label>
             <select
               name="location"
               value={formData.location}
               onChange={handleChange}
-              className="w-full p-3 md:p-4 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+              className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-base"
             >
               <option value="">Select your area</option>
               <option value="Battersea">Battersea</option>
@@ -718,7 +718,7 @@ export default function Profile() {
             <button
               type="submit"
               disabled={uploading}
-              className="w-full bg-orange-500 text-white py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-orange-600 disabled:bg-gray-700 disabled:cursor-not-allowed transition"
+              className="w-full bg-brand text-ink py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-brand-hover disabled:bg-card2 disabled:cursor-not-allowed transition"
             >
               {uploading ? 'Uploading...' : 'Save Profile'}
             </button>

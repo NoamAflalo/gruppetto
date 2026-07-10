@@ -9,6 +9,7 @@ import SessionMap from '../components/map';
 import Toast from '../components/Toast';
 import DatePickerCalendar from '../components/DatePickerCalendar';
 import { authedFetch } from '@/lib/api';
+import { CalendarDays, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import { getPools } from '@/lib/londonLocations';
 import { ViewModeToggle, ActivityFilterBar } from './components/FilterBars';
 import AdvancedFiltersPanel from './components/AdvancedFiltersPanel';
@@ -115,16 +116,15 @@ export default function Sessions() {
 
       setSessions(sessionsData);
 
-      const profilesData = {};
-      for (const userId of userIds) {
-        if (!profiles[userId]) {
-          const profileDoc = await getDoc(doc(db, 'profiles', userId));
-          if (profileDoc.exists()) {
-            profilesData[userId] = profileDoc.data();
-          }
-        }
-      }
-      setProfiles(prev => ({ ...prev, ...profilesData }));
+      // Fetch unknown profiles in parallel instead of one-by-one
+      const idsToFetch = [...userIds].filter((id) => !profiles[id]);
+      const fetched = await Promise.all(
+        idsToFetch.map(async (id) => {
+          const profileDoc = await getDoc(doc(db, 'profiles', id));
+          return profileDoc.exists() ? [id, profileDoc.data()] : null;
+        })
+      );
+      setProfiles(prev => ({ ...prev, ...Object.fromEntries(fetched.filter(Boolean)) }));
     });
 
     return () => unsubscribe();
@@ -357,22 +357,31 @@ export default function Sessions() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-ground">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-4">
+          <div className="skeleton h-10 w-64" />
+          <div className="skeleton h-10 w-96 max-w-full" />
+          <div className="skeleton h-40 rounded-2xl" />
+          <div className="skeleton h-40 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-ground">
       <Navigation user={user} />
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-white mb-2">Browse Sessions</h1>
-            <p className="text-gray-400 text-base md:text-lg">Find and join training sessions</p>
+            <h1 className="font-display uppercase text-4xl md:text-5xl text-ink mb-1.5">Browse Sessions</h1>
+            <p className="text-muted text-base md:text-lg">Find and join training sessions</p>
           </div>
           <button
             onClick={() => router.push('/create')}
-            className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 font-semibold transition w-full md:w-auto"
+            className="bg-brand text-white px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition w-full md:w-auto"
           >
             + Create Session
           </button>
@@ -389,11 +398,11 @@ export default function Sessions() {
         {/* MAP VIEW - Date Picker au dessus des Advanced Filters */}
         {viewMode === 'map' && (
           <div className="mb-4">
-            <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border border-orange-500/30 rounded-xl p-4">
+            <div className="bg-gradient-to-r from-brand/10 to-brand-hover/10 border border-brand/30 rounded-xl p-4">
               <div className="flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">📅</span>
-                  <span className="text-white font-semibold">Show sessions for:</span>
+                  <CalendarDays size={20} className="text-brand" />
+                  <span className="text-ink font-semibold">Show sessions for:</span>
                 </div>
                 <div className="flex-1 max-w-xs">
                   <DatePickerCalendar
@@ -403,7 +412,7 @@ export default function Sessions() {
                     placeholder="Select a date"
                   />
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted">
                   {sortedSessions.length} session{sortedSessions.length !== 1 ? 's' : ''} found
                 </div>
               </div>
@@ -416,9 +425,9 @@ export default function Sessions() {
           <div className="mb-6">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="text-orange-500 font-semibold hover:text-orange-400 transition flex items-center gap-2"
+              className="text-brand font-semibold hover:text-brand-soft transition flex items-center gap-2"
             >
-              {showAdvancedFilters ? '▼' : '▶'} Advanced Filters
+              {showAdvancedFilters ? <ChevronDown size={16} /> : <ChevronRight size={16} />} Advanced Filters
             </button>
           </div>
         )}
@@ -453,7 +462,7 @@ export default function Sessions() {
 
         {/* MAP VIEW */}
         {viewMode === 'map' && (
-          <div className="mb-8 rounded-xl overflow-hidden border border-gray-800" style={{ height: '400px' }}>
+          <div className="mb-8 rounded-xl overflow-hidden border border-line" style={{ height: '400px' }}>
             <SessionMap
               sessions={sortedSessions}
               onMarkerClick={handleMarkerClick}
@@ -469,32 +478,27 @@ export default function Sessions() {
               <div className="mb-6 md:mb-8">
                 <button
                   onClick={() => setShowRecommendations(!showRecommendations)}
-                  className="w-full bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-2 border-orange-500/50 rounded-xl p-4 hover:border-orange-500 transition flex items-center justify-between"
+                  className="w-full bg-gradient-to-r from-brand/10 to-brand/5 border border-brand/40 rounded-xl p-4 hover:border-brand transition flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">✨</span>
+                    <Sparkles size={22} className="text-brand" />
                     <div className="text-left">
-                      <h3 className="text-lg md:text-xl font-bold text-white">
+                      <h3 className="font-display uppercase text-lg md:text-xl text-ink">
                         Recommended For You
                       </h3>
-                      <p className="text-xs md:text-sm text-gray-400">
+                      <p className="text-xs md:text-sm text-muted">
                         {recommendedSessions.length} session{recommendedSessions.length !== 1 ? 's' : ''} match your profile
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
+                    <span className="px-3 py-1 bg-brand text-white rounded-full text-xs font-bold">
                       {recommendedSessions.length}
                     </span>
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className={`text-orange-500 transition-transform ${showRecommendations ? 'rotate-180' : ''}`}
-                    >
-                      <path d="M10 12L5 7h10z"/>
-                    </svg>
+                    <ChevronDown
+                      size={20}
+                      className={`text-brand transition-transform ${showRecommendations ? 'rotate-180' : ''}`}
+                    />
                   </div>
                 </button>
 
@@ -512,8 +516,8 @@ export default function Sessions() {
                 )}
 
                 {showRecommendations && (
-                  <div className="border-t border-gray-800 pt-6 mt-6">
-                    <h2 className="text-xl md:text-2xl font-bold text-white mb-4">All Sessions</h2>
+                  <div className="border-t border-line pt-6 mt-6">
+                    <h2 className="text-xl md:text-2xl font-bold text-ink mb-4">All Sessions</h2>
                   </div>
                 )}
               </div>
@@ -521,8 +525,8 @@ export default function Sessions() {
 
             {/* All Sessions */}
             {sortedSessions.length === 0 ? (
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 md:p-12 text-center">
-                <p className="text-gray-400 text-base md:text-lg">No upcoming sessions match your filters. Try adjusting them!</p>
+              <div className="bg-card rounded-xl border border-line p-8 md:p-12 text-center">
+                <p className="text-muted text-base md:text-lg">No upcoming sessions match your filters. Try adjusting them!</p>
               </div>
             ) : (
               <div className="grid gap-4 md:gap-6">
