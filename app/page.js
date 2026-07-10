@@ -5,6 +5,7 @@ import { auth, db } from '@/lib/firebase';
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   getRedirectResult,
   createUserWithEmailAndPassword,
@@ -37,7 +38,7 @@ export default function Home() {
         const result = await getRedirectResult(auth);
 
         if (result?.user) {
-          // Redirect successful, user is signed in
+          await createUserProfile(result.user);
         }
       } catch (error) {
         console.error('❌ Redirect error:', error);
@@ -80,12 +81,22 @@ export default function Home() {
       await createUserProfile(result.user);
 
     } catch (error) {
-      setIsAuthenticating(false);
       console.error('Error signing in:', error);
 
-      if (error.code === 'auth/popup-blocked') {
-        alert('🚫 Popups are blocked. Please allow popups for this site in your browser settings.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
+      // Popup couldn't open (blocked, or unsupported on this browser) —
+      // fall back to the full-page redirect flow, which needs no popup.
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request' || error.code === 'auth/operation-not-supported-in-this-environment') {
+        try {
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+          return;
+        } catch (redirectError) {
+          console.error('Redirect sign-in error:', redirectError);
+        }
+      }
+
+      setIsAuthenticating(false);
+
+      if (error.code === 'auth/popup-closed-by-user') {
         // User fermé le popup, c'est normal
       } else {
         alert(
