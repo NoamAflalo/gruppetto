@@ -5,11 +5,15 @@ import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../components/navigation';
+import ActivityIcon from '../../components/ActivityIcon';
+import ImageLightbox from '../../components/ImageLightbox';
+import { MapPin, BarChart3, Target } from 'lucide-react';
 
 export default function UserProfile() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [stats, setStats] = useState({
     sessionsJoined: 0,
     sessionsHosted: 0,
@@ -90,7 +94,15 @@ export default function UserProfile() {
   }, [userId]);
 
   if (loading || !profile) {
-    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-ground">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-12 space-y-4">
+          <div className="skeleton h-10 w-56" />
+          <div className="skeleton h-32 rounded-2xl" />
+          <div className="skeleton h-72 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -99,15 +111,17 @@ export default function UserProfile() {
       
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">{profile.displayName || 'User Profile'}</h1>
+          <h1 className="font-display uppercase text-4xl md:text-5xl text-ink mb-1.5">{profile.displayName || 'User Profile'}</h1>
           {profile.location && (
-            <p className="text-muted text-base md:text-lg">📍 {profile.location}</p>
+            <p className="text-muted text-base md:text-lg inline-flex items-center gap-1.5"><MapPin size={16} /> {profile.location}</p>
           )}
         </div>
 
         {/* Stats Section */}
         <div className="bg-card rounded-2xl border border-line p-4 md:p-6 mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold text-ink mb-4">📊 Stats</h2>
+          <h2 className="font-display uppercase text-xl md:text-2xl text-ink mb-4 flex items-center gap-2">
+            <BarChart3 size={19} className="text-brand" /> Stats
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-ground rounded-xl p-4 border border-line">
               <div className="text-2xl md:text-3xl font-black text-brand mb-1">
@@ -124,7 +138,7 @@ export default function UserProfile() {
             </div>
             
             <div className="bg-ground rounded-xl p-4 border border-line col-span-2 md:col-span-1">
-              <div className="text-2xl md:text-3xl font-black text-blue-500 mb-1">
+              <div className="text-2xl md:text-3xl font-black text-ink mb-1">
                 {stats.memberSince 
                   ? new Date(stats.memberSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
                   : '...'
@@ -140,13 +154,28 @@ export default function UserProfile() {
           {/* Profile Image */}
           {profile.profileImage && (
             <div className="flex justify-center mb-6 md:mb-8">
-              <img 
-                src={profile.profileImage} 
-                alt={profile.displayName}
-                className="rounded-full object-cover border-4 border-brand"
+              <button
+                type="button"
+                onClick={() => setShowImageModal(true)}
+                className="rounded-full overflow-hidden border-4 border-brand hover:opacity-90 transition"
                 style={{ width: '10rem', height: '10rem' }}
-              />
+                title="View photo"
+              >
+                <img
+                  src={profile.profileImage}
+                  alt={profile.displayName}
+                  className="w-full h-full object-cover"
+                />
+              </button>
             </div>
+          )}
+
+          {showImageModal && (
+            <ImageLightbox
+              src={profile.profileImage}
+              alt={profile.displayName}
+              onClose={() => setShowImageModal(false)}
+            />
           )}
 
           {/* Bio */}
@@ -160,7 +189,7 @@ export default function UserProfile() {
           {/* Training Goals */}
           {profile.goals && (
             <div className="mb-6">
-              <h3 className="text-lg md:text-xl font-bold text-ink mb-2">🎯 Training Goals</h3>
+              <h3 className="text-lg md:text-xl font-bold text-ink mb-2 flex items-center gap-2"><Target size={17} className="text-brand" /> Training Goals</h3>
               <p className="text-soft text-sm md:text-base leading-relaxed">{profile.goals}</p>
             </div>
           )}
@@ -172,7 +201,7 @@ export default function UserProfile() {
               <div>
                 <h3 className="text-sm font-semibold text-muted mb-2">Gender</h3>
                 <p className="text-ink capitalize text-sm md:text-base">
-                  {profile.gender === 'female' ? '👩 Female' : '👨 Male'}
+                  {profile.gender === 'female' ? 'Female' : 'Male'}
                 </p>
               </div>
             )}
@@ -189,10 +218,8 @@ export default function UserProfile() {
                 <h3 className="text-sm font-semibold text-muted mb-2">Activities</h3>
                 <div className="flex gap-2 flex-wrap">
                   {profile.activities.map((activity) => (
-                    <span key={activity} className="px-3 py-1 bg-brand/20 text-brand-soft rounded-full text-xs md:text-sm font-semibold capitalize">
-                      {activity === 'running' && '🏃 '}
-                      {activity === 'cycling' && '🚴 '}
-                      {activity === 'swimming' && '🏊 '}
+                    <span key={activity} className="px-3 py-1 bg-brand/15 text-brand-soft border border-brand/30 rounded-full text-xs md:text-sm font-semibold capitalize inline-flex items-center gap-1.5">
+                      <ActivityIcon type={activity} size={13} />
                       {activity}
                     </span>
                   ))}

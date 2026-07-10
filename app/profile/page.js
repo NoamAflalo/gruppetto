@@ -6,6 +6,9 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
+import ActivityIcon from '../components/ActivityIcon';
+import ImageLightbox from '../components/ImageLightbox';
+import { BarChart3, Camera } from 'lucide-react';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -208,7 +211,7 @@ export default function Profile() {
         updatedAt: new Date(),
       });
       
-      setSaveMessage('✅ Profile saved successfully!');
+      setSaveMessage('Profile saved successfully!');
       
       // Auto-scroll to top to see message
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -217,7 +220,7 @@ export default function Profile() {
       setTimeout(() => setSaveMessage(''), 5000);
     } catch (error) {
       console.error('Error saving profile:', error);
-      setSaveMessage('❌ Error saving profile. Please try again.');
+      setSaveMessage('Error saving profile. Please try again.');
       setTimeout(() => setSaveMessage(''), 5000);
     }
   };
@@ -275,7 +278,15 @@ export default function Profile() {
   // };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-ground">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-12 space-y-4">
+          <div className="skeleton h-10 w-56" />
+          <div className="skeleton h-32 rounded-2xl" />
+          <div className="skeleton h-96 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -284,13 +295,13 @@ export default function Profile() {
       
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">Your Profile</h1>
+          <h1 className="font-display uppercase text-4xl md:text-5xl text-ink mb-1.5">Your Profile</h1>
           <p className="text-muted text-base md:text-lg">Tell others about your fitness journey</p>
         </div>
 
         {saveMessage && (
           <div className={`mb-6 p-4 rounded-xl text-center font-semibold text-base md:text-lg animate-pulse ${
-            saveMessage.includes('✅') 
+            saveMessage.includes('successfully') 
               ? 'bg-green-500/20 border-2 border-green-500 text-green-400' 
               : 'bg-red-500/20 border-2 border-red-500 text-red-400'
           }`}>
@@ -300,7 +311,9 @@ export default function Profile() {
 
         {/* Stats Section */}
         <div className="bg-card rounded-2xl border border-line p-4 md:p-6 mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold text-ink mb-4">📊 Your Stats</h2>
+          <h2 className="font-display uppercase text-xl md:text-2xl text-ink mb-4 flex items-center gap-2">
+            <BarChart3 size={19} className="text-brand" /> Your Stats
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-ground rounded-xl p-4 border border-line">
               <div className="text-2xl md:text-3xl font-black text-brand mb-1">
@@ -317,7 +330,7 @@ export default function Profile() {
             </div>
             
             <div className="bg-ground rounded-xl p-4 border border-line col-span-2 md:col-span-1">
-              <div className="text-2xl md:text-3xl font-black text-blue-500 mb-1">
+              <div className="text-2xl md:text-3xl font-black text-ink mb-1">
                 {stats.memberSince 
                   ? new Date(stats.memberSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
                   : '...'
@@ -341,77 +354,62 @@ export default function Profile() {
               className="hidden"
             />
             
-            {/* Click on thumbnail to change */}
-            <div className="flex items-center gap-4">
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="relative cursor-pointer group"
-              >
+            {/* Click the photo to view it large; camera button changes it */}
+            <div className="flex items-center gap-5">
+              <div className="relative w-32 h-32 flex-none">
                 {formData.profileImage ? (
-                  <>
-                    <img 
-                      src={formData.profileImage} 
-                      alt="Profile" 
-                      className="rounded-full object-cover border-4 border-brand group-hover:opacity-80 transition"
-                      style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}
+                  <button
+                    type="button"
+                    onClick={() => setShowImageModal(true)}
+                    className="block w-full h-full rounded-full overflow-hidden border-4 border-brand hover:opacity-90 transition"
+                    title="View photo"
+                  >
+                    <img
+                      src={formData.profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-ground/50 rounded-full opacity-0 group-hover:opacity-100 transition">
-                      <span className="text-ink text-sm font-semibold">Change Photo</span>
-                    </div>
-                  </>
+                  </button>
                 ) : (
-                  <div className="rounded-full bg-card2 flex flex-col items-center justify-center border-4 border-line group-hover:border-brand transition"
-                       style={{ width: '8rem', height: '8rem', minWidth: '8rem', minHeight: '8rem' }}>
-                    <div className="text-4xl mb-2">📸</div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-full rounded-full bg-card2 flex flex-col items-center justify-center gap-1.5 border-4 border-line hover:border-brand transition"
+                  >
+                    <Camera size={26} className="text-muted" />
                     <span className="text-xs text-muted">Add Photo</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1">
-                <p className="text-sm text-soft mb-2">
-                  {formData.profileImage ? 'Click on your photo to change it' : 'Click to add a profile photo'}
-                </p>
-                <p className="text-xs text-muted">PNG, JPG, GIF or WebP (max 5MB)</p>
-                {uploading && (
-                  <p className="text-sm text-brand mt-2">⏳ Uploading...</p>
+                  </button>
                 )}
                 {formData.profileImage && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowImageModal(true);
-                    }}
-                    className="text-sm text-brand hover:text-brand-soft mt-2 inline-block underline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0.5 right-0.5 bg-brand text-white rounded-full p-2 border-2 border-card hover:bg-brand-hover transition"
+                    title="Change photo"
+                    aria-label="Change photo"
                   >
-                    View full size
+                    <Camera size={14} />
                   </button>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <p className="text-sm text-soft mb-1.5">
+                  {formData.profileImage ? 'Click your photo to see it full size — the camera button swaps it' : 'Click to add a profile photo'}
+                </p>
+                <p className="text-xs text-muted">PNG, JPG, GIF or WebP (max 5MB)</p>
+                {uploading && (
+                  <p className="text-sm text-brand mt-2">Uploading…</p>
                 )}
               </div>
             </div>
 
-            {/* Image Modal */}
             {showImageModal && (
-              <div 
-                className="fixed inset-0 bg-ground/90 z-50 flex items-center justify-center p-4"
-                onClick={() => setShowImageModal(false)}
-              >
-                <div className="relative max-w-4xl max-h-[90vh]">
-                  <button
-                    onClick={() => setShowImageModal(false)}
-                    className="absolute top-4 right-4 text-ink text-4xl hover:text-brand transition z-10"
-                  >
-                    ×
-                  </button>
-                  <img 
-                    src={formData.profileImage} 
-                    alt="Profile" 
-                    className="max-w-full max-h-[90vh] object-contain rounded-xl"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              </div>
+              <ImageLightbox
+                src={formData.profileImage}
+                alt="Profile photo"
+                onClose={() => setShowImageModal(false)}
+              />
             )}
           </div>
 
@@ -438,26 +436,26 @@ export default function Profile() {
                 onClick={() => setFormData({ ...formData, gender: 'female' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition text-sm md:text-base ${
                   formData.gender === 'female'
-                    ? 'bg-pink-500 border-pink-500 text-ink'
+                    ? 'bg-brand/10 border-brand text-ink'
                     : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
-                👩 Female
+                Female
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, gender: 'male' })}
                 className={`p-3 md:p-4 rounded-xl border-2 font-semibold transition text-sm md:text-base ${
                   formData.gender === 'male'
-                    ? 'bg-blue-500 border-blue-500 text-ink'
+                    ? 'bg-brand/10 border-brand text-ink'
                     : 'bg-ground border-line text-soft hover:border-brand/40'
                 }`}
               >
-                👨 Male
+                Male
               </button>
             </div>
             <p className="text-xs text-muted mt-2">
-              💡 Required to access certain features like creating "Girls Only" sessions
+              Required to access certain features like creating "Girls Only" sessions
             </p>
           </div>
 
@@ -559,7 +557,7 @@ export default function Profile() {
                   onClick={() => setFormData({ ...formData, fitnessLevel: level })}
                   className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                     formData.fitnessLevel === level
-                      ? 'bg-brand border-brand text-ink'
+                      ? 'bg-brand border-brand text-white'
                       : 'bg-ground border-line text-soft hover:border-brand/40'
                   }`}
                 >
@@ -580,13 +578,15 @@ export default function Profile() {
                   onClick={() => handleActivityToggle(activity)}
                   className={`p-3 md:p-4 rounded-xl border-2 font-semibold capitalize transition text-sm md:text-base ${
                     formData.activities.includes(activity)
-                      ? 'bg-brand border-brand text-ink'
+                      ? 'bg-brand/10 border-brand text-ink'
                       : 'bg-ground border-line text-soft hover:border-brand/40'
                   }`}
                 >
-                  {activity === 'running' && '🏃 '}
-                  {activity === 'cycling' && '🚴 '}
-                  {activity === 'swimming' && '🏊 '}
+                  <ActivityIcon
+                    type={activity}
+                    size={16}
+                    className={`inline -mt-0.5 mr-1.5 ${formData.activities.includes(activity) ? 'text-brand' : 'text-muted'}`}
+                  />
                   {activity}
                 </button>
               ))}
@@ -601,82 +601,37 @@ export default function Profile() {
             </p>
             
             <div className="space-y-4">
-              {/* Running Rating */}
-              <div className="bg-ground rounded-xl p-4 border border-line">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm md:text-base text-ink font-semibold">🏃 Running</span>
-                  <span className="text-brand font-bold">{formData.ratings.running}/5</span>
+              {['running', 'cycling', 'swimming'].map((activity) => (
+                <div key={activity} className="bg-ground rounded-xl p-4 border border-line">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm md:text-base text-ink font-semibold capitalize inline-flex items-center gap-2">
+                      <ActivityIcon type={activity} size={16} className="text-brand" /> {activity}
+                    </span>
+                    <span className="text-brand font-bold">{formData.ratings[activity]}/5</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        type="button"
+                        onClick={() => handleRatingChange(activity, rating)}
+                        className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
+                          formData.ratings[activity] >= rating
+                            ? 'bg-brand text-white'
+                            : 'bg-card2 text-muted hover:text-soft'
+                        }`}
+                      >
+                        {rating}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() => handleRatingChange('running', rating)}
-                      className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
-                        formData.ratings.running >= rating
-                          ? 'bg-brand text-ink'
-                          : 'bg-card2 text-muted hover:bg-card2'
-                      }`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cycling Rating */}
-              <div className="bg-ground rounded-xl p-4 border border-line">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm md:text-base text-ink font-semibold">🚴 Cycling</span>
-                  <span className="text-brand font-bold">{formData.ratings.cycling}/5</span>
-                </div>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() => handleRatingChange('cycling', rating)}
-                      className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
-                        formData.ratings.cycling >= rating
-                          ? 'bg-brand text-ink'
-                          : 'bg-card2 text-muted hover:bg-card2'
-                      }`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Swimming Rating */}
-              <div className="bg-ground rounded-xl p-4 border border-line">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm md:text-base text-ink font-semibold">🏊 Swimming</span>
-                  <span className="text-brand font-bold">{formData.ratings.swimming}/5</span>
-                </div>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() => handleRatingChange('swimming', rating)}
-                      className={`flex-1 py-2 rounded-lg font-semibold transition text-sm ${
-                        formData.ratings.swimming >= rating
-                          ? 'bg-brand text-ink'
-                          : 'bg-card2 text-muted hover:bg-card2'
-                      }`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
 
             <div className="mt-4 bg-brand/5 border border-brand/20 rounded-lg p-3">
               <p className="text-xs md:text-sm text-soft">
-                💡 <strong>Tip:</strong> 1-2 = Beginner | 3 = Intermediate | 4-5 = Advanced
+                <strong>Tip:</strong> 1-2 = Beginner | 3 = Intermediate | 4-5 = Advanced
               </p>
             </div>
           </div>
@@ -718,7 +673,7 @@ export default function Profile() {
             <button
               type="submit"
               disabled={uploading}
-              className="w-full bg-brand text-ink py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-brand-hover disabled:bg-card2 disabled:cursor-not-allowed transition"
+              className="w-full bg-brand text-white py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-brand-hover disabled:bg-card2 disabled:cursor-not-allowed transition"
             >
               {uploading ? 'Uploading...' : 'Save Profile'}
             </button>

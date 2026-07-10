@@ -5,6 +5,9 @@ import { collection, query, where, orderBy, onSnapshot, getDoc, doc, getDocs } f
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
+import ActivityIcon from '../components/ActivityIcon';
+import { getIntensityColor } from '@/lib/sessionUi';
+import { Users, Mic, Landmark, CalendarDays, History, LayoutGrid, Calendar, Clock, MapPin, Ruler, User, Lock, BadgeCheck, Star } from 'lucide-react';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -155,26 +158,17 @@ export default function Dashboard() {
     return dateA - dateB; // Soonest upcoming first
   });
 
-  const getActivityEmoji = (type) => {
-    switch(type) {
-      case 'running': return '🏃';
-      case 'cycling': return '🚴';
-      case 'swimming': return '🏊';
-      default: return '💪';
-    }
-  };
-
-  const getIntensityColor = (intensity) => {
-    switch(intensity) {
-      case 'easy': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'moderate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'hard': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-gray-500/20 text-muted border-gray-500/30';
-    }
-  };
-
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-ground text-ink">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-ground">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-4">
+          <div className="skeleton h-10 w-64" />
+          <div className="skeleton h-10 w-96 max-w-full" />
+          <div className="skeleton h-40 rounded-2xl" />
+          <div className="skeleton h-40 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -184,7 +178,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">My Dashboard</h1>
+          <h1 className="font-display uppercase text-4xl md:text-5xl text-ink mb-1.5">My Dashboard</h1>
           <p className="text-muted text-base md:text-lg">
             Welcome back, {userProfile?.displayName || user?.email}!
           </p>
@@ -195,32 +189,32 @@ export default function Dashboard() {
           <button
             onClick={() => setViewFilter('participating')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              viewFilter === 'participating' 
-                ? 'bg-brand text-ink' 
+              viewFilter === 'participating'
+                ? 'bg-brand text-white'
                 : 'bg-card text-soft hover:bg-card2 border border-line'
-            }`}
+            } inline-flex items-center gap-2`}
           >
-            👥 My Sessions
+            <Users size={15} /> My Sessions
           </button>
           <button
             onClick={() => setViewFilter('hosting')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              viewFilter === 'hosting' 
-                ? 'bg-brand text-ink' 
+              viewFilter === 'hosting'
+                ? 'bg-brand text-white'
                 : 'bg-card text-soft hover:bg-card2 border border-line'
-            }`}
+            } inline-flex items-center gap-2`}
           >
-            🎤 Hosting
+            <Mic size={15} /> Hosting
           </button>
           <button
             onClick={() => setViewFilter('clubs')}
             className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-              viewFilter === 'clubs' 
-                ? 'bg-brand text-ink' 
+              viewFilter === 'clubs'
+                ? 'bg-brand text-white'
                 : 'bg-card text-soft hover:bg-card2 border border-line'
-            }`}
+            } inline-flex items-center gap-2`}
           >
-            🏛️ My Clubs
+            <Landmark size={15} /> My Clubs
           </button>
         </div>
 
@@ -230,32 +224,32 @@ export default function Dashboard() {
             <button
               onClick={() => setTimeFilter('upcoming')}
               className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-                timeFilter === 'upcoming' 
-                  ? 'bg-green-500 text-ink' 
+                timeFilter === 'upcoming'
+                  ? 'bg-brand text-white'
                   : 'bg-card text-soft hover:bg-card2 border border-line'
-              }`}
+              } inline-flex items-center gap-2`}
             >
-              📅 Upcoming
+              <CalendarDays size={15} /> Upcoming
             </button>
             <button
               onClick={() => setTimeFilter('past')}
               className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-                timeFilter === 'past' 
-                  ? 'bg-blue-500 text-ink' 
+                timeFilter === 'past'
+                  ? 'bg-brand text-white'
                   : 'bg-card text-soft hover:bg-card2 border border-line'
-              }`}
+              } inline-flex items-center gap-2`}
             >
-              📜 Past
+              <History size={15} /> Past
             </button>
             <button
               onClick={() => setTimeFilter('all')}
               className={`px-4 md:px-6 py-2 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${
-                timeFilter === 'all' 
-                  ? 'bg-brand text-ink' 
+                timeFilter === 'all'
+                  ? 'bg-brand text-white'
                   : 'bg-card text-soft hover:bg-card2 border border-line'
-              }`}
+              } inline-flex items-center gap-2`}
             >
-              🗂️ All
+              <LayoutGrid size={15} /> All
             </button>
           </div>
         )}
@@ -270,7 +264,7 @@ export default function Dashboard() {
                 </p>
                 <button
                   onClick={() => router.push('/browse?view=clubs')}
-                  className="bg-brand text-ink px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
+                  className="bg-brand text-white px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
                 >
                   Browse Clubs
                 </button>
@@ -296,24 +290,24 @@ export default function Dashboard() {
                         )}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <h3 className="text-2xl font-bold text-ink">{club.name}</h3>
+                            <h3 className="font-display uppercase text-2xl text-ink">{club.name}</h3>
                             {club.isFeatured && (
-                              <span className="px-2 py-1 bg-brand text-ink rounded text-xs font-bold">
-                                ✓ VERIFIED
+                              <span className="px-2 py-0.5 bg-brand text-white rounded-full text-[11px] font-bold inline-flex items-center gap-1">
+                                <BadgeCheck size={12} /> VERIFIED
                               </span>
                             )}
                             {isFounder && (
-                              <span className="px-2 py-1 bg-card2 text-soft border border-line rounded text-xs font-bold">
-                                ★ Founder
+                              <span className="px-2 py-0.5 bg-card2 text-soft border border-line rounded-full text-[11px] font-bold inline-flex items-center gap-1">
+                                <Star size={11} /> Founder
                               </span>
                             )}
                           </div>
                           <div className="space-y-1 text-sm mb-4">
-                            <p className="text-soft">
-                              {getActivityEmoji(club.activity_type)} {club.activity_type.charAt(0).toUpperCase() + club.activity_type.slice(1)}
+                            <p className="text-soft inline-flex items-center gap-1.5 capitalize">
+                              <ActivityIcon type={club.activity_type} size={14} className="text-muted" /> {club.activity_type}
                             </p>
-                            <p className="text-soft">📍 {club.location}</p>
-                            <p className="text-soft">👥 {club.member_count || 1} members</p>
+                            <p className="text-soft flex items-center gap-1.5"><MapPin size={14} className="text-muted" /> {club.location}</p>
+                            <p className="text-soft flex items-center gap-1.5"><Users size={14} className="text-muted" /> {club.member_count || 1} members</p>
                           </div>
                           <p className="text-muted mb-4 line-clamp-2">{club.description}</p>
                           <button
@@ -321,7 +315,7 @@ export default function Dashboard() {
                               e.stopPropagation();
                               router.push(`/club/${club.id}`);
                             }}
-                            className="bg-brand text-ink px-6 py-2 rounded-lg hover:bg-brand-hover font-semibold transition"
+                            className="bg-brand text-white px-6 py-2 rounded-lg hover:bg-brand-hover font-semibold transition"
                           >
                             View Club
                           </button>
@@ -347,7 +341,7 @@ export default function Dashboard() {
                 </p>
                 <button
                   onClick={() => router.push(viewFilter === 'participating' ? '/browse' : '/create')}
-                  className="bg-brand text-ink px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
+                  className="bg-brand text-white px-6 py-3 rounded-lg hover:bg-brand-hover font-semibold transition"
                 >
                   {viewFilter === 'participating' ? 'Browse Sessions' : 'Create Session'}
                 </button>
@@ -371,24 +365,24 @@ export default function Dashboard() {
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
-                            <span className="text-3xl md:text-4xl">{getActivityEmoji(session.activity_type)}</span>
-                            <h2 className="text-xl md:text-3xl font-bold text-ink">{session.title}</h2>
-                            <span className={`px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold border ${getIntensityColor(session.intensity)}`}>
+                            <ActivityIcon type={session.activity_type} boxed size={19} boxClass="w-10 h-10 md:w-11 md:h-11" />
+                            <h2 className="font-display uppercase text-xl md:text-2xl text-ink leading-tight">{session.title}</h2>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border ${getIntensityColor(session.intensity)}`}>
                               {session.intensity}
                             </span>
                             {isHost && (
-                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-brand/20 text-brand-soft border border-brand/30">
-                                🎤 Host
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-brand/15 text-brand-soft border border-brand/30 inline-flex items-center gap-1">
+                                <Mic size={11} /> Host
                               </span>
                             )}
                             {isPast && (
-                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-gray-500/20 text-muted border border-gray-500/30">
-                                ⏱️ Past
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-card2 text-muted border border-line inline-flex items-center gap-1">
+                                <History size={11} /> Past
                               </span>
                             )}
                             {session.isPrivate && (
-                              <span className="px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold bg-card2 text-soft border border-line">
-                                🔒 Private
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-card2 text-soft border border-line inline-flex items-center gap-1">
+                                <Lock size={11} /> Private
                               </span>
                             )}
                           </div>
@@ -396,10 +390,10 @@ export default function Dashboard() {
                           <p className="text-muted mb-3 md:mb-4 text-sm md:text-lg">{session.description}</p>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm md:text-base text-soft mb-3 md:mb-4">
-                            <div>📅 <strong>Date:</strong> {session.date}</div>
-                            <div>🕐 <strong>Time:</strong> {session.time}</div>
-                            <div className="sm:col-span-2">📍 <strong>Location:</strong> {session.location}</div>
-                            {session.distance && <div>📏 <strong>Distance:</strong> {session.distance}</div>}
+                            <div className="flex items-center gap-2"><Calendar size={15} className="text-muted flex-none" /> {session.date}</div>
+                            <div className="flex items-center gap-2"><Clock size={15} className="text-muted flex-none" /> {session.time}</div>
+                            <div className="sm:col-span-2 flex items-center gap-2"><MapPin size={15} className="text-muted flex-none" /> {session.location}</div>
+                            {session.distance && <div className="flex items-center gap-2"><Ruler size={15} className="text-muted flex-none" /> {session.distance}</div>}
                           </div>
                           
                           {/* Host Profile */}
@@ -418,8 +412,8 @@ export default function Dashboard() {
                                   className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-brand"
                                 />
                               ) : (
-                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-card2 flex items-center justify-center text-lg md:text-xl border-2 border-brand">
-                                  👤
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-card2 flex items-center justify-center border-2 border-brand">
+                                  <User size={18} className="text-muted" />
                                 </div>
                               )}
                               <div>
@@ -435,8 +429,8 @@ export default function Dashboard() {
                           
                           {/* Participants */}
                           <div className="mb-2">
-                            <p className="text-xs md:text-sm font-semibold text-soft mb-2 md:mb-3">
-                              👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
+                            <p className="text-xs md:text-sm font-semibold text-soft mb-2 md:mb-3 inline-flex items-center gap-1.5">
+                              <Users size={14} className="text-muted" /> {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
                               {session.max_participants && ` (max: ${session.max_participants})`}
                             </p>
                             {participantCount > 0 && (
@@ -461,9 +455,9 @@ export default function Dashboard() {
                                           style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
                                         />
                                       ) : (
-                                        <div className="rounded-full bg-card2 flex items-center justify-center text-xs md:text-sm border-2 border-line hover:border-brand"
+                                        <div className="rounded-full bg-card2 flex items-center justify-center border-2 border-line hover:border-brand"
                                              style={{ width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}>
-                                          👤
+                                          <User size={13} className="text-muted" />
                                         </div>
                                       )}
                                     </div>
@@ -486,7 +480,7 @@ export default function Dashboard() {
                             e.stopPropagation();
                             router.push(`/session/${session.id}`);
                           }}
-                          className="w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition bg-brand text-ink hover:bg-brand-hover"
+                          className="w-full md:w-auto md:ml-6 px-6 md:px-8 py-3 rounded-lg font-semibold transition bg-brand text-white hover:bg-brand-hover"
                         >
                           View Details
                         </button>
