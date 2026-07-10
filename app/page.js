@@ -89,13 +89,7 @@ export default function Home() {
         // User fermé le popup, c'est normal
       } else {
         alert(
-          '⚠️ Having trouble signing in?\n\n' +
-          'If you\'re using Safari on iPhone:\n' +
-          '• Go to Settings → Safari\n' +
-          '• Turn OFF "Prevent Cross-Site Tracking"\n' +
-          '• Turn OFF "Block All Cookies"\n' +
-          '• Try again\n\n' +
-          'Or use Chrome instead (it works perfectly!).'
+          "Sign-in didn't complete. Please try again — and if it keeps failing, make sure popups are allowed for this site."
         );
       }
     }
