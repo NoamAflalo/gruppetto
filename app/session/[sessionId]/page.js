@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
+import { authedFetch } from '@/lib/api';
 import { doc, getDoc, collection, onSnapshot, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
@@ -184,7 +185,7 @@ export default function SessionDetail() {
 
       // Envoyer email au créateur
       try {
-        await fetch('/api/send-notification', {
+        await authedFetch('/api/send-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -229,7 +230,7 @@ export default function SessionDetail() {
 
       // Envoyer email à l'utilisateur approuvé
       try {
-        await fetch('/api/send-notification', {
+        await authedFetch('/api/send-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -326,7 +327,7 @@ export default function SessionDetail() {
 
         // 1. Send confirmation email to the user joining
         try {
-          await fetch('/api/send-notification', {
+          await authedFetch('/api/send-notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -350,7 +351,7 @@ export default function SessionDetail() {
         // 2. Send email to the host
         if (updatedSession.host_email && updatedSession.host_user_id !== user.uid) {
           try {
-            await fetch('/api/send-notification', {
+            await authedFetch('/api/send-notification', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -383,7 +384,7 @@ export default function SessionDetail() {
             
             if (participantProfile?.email) {
               try {
-                await fetch('/api/send-notification', {
+                await authedFetch('/api/send-notification', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

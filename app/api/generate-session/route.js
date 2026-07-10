@@ -1,31 +1,55 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { verifyFirebaseToken, rateLimit } from '@/lib/serverAuth';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+const sessionSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: 'Short title, max 6 words' },
+    description: {
+      type: 'string',
+      description:
+        'Bullet points with • symbol, separated by \\n. 2-3 bullets for simple runs, more for interval workouts. Each bullet under 20 words.',
+    },
+    distance: {
+      type: 'string',
+      description: 'Number + unit like "5km", "10km", or empty string',
+    },
+    intensity: { type: 'string', enum: ['easy', 'moderate', 'hard'] },
+  },
+  required: ['title', 'description', 'distance', 'intensity'],
+  additionalProperties: false,
+};
+
 export async function POST(request) {
   try {
+    const user = await verifyFirebaseToken(request);
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!rateLimit(`generate:${user.uid}`, { limit: 20, windowMs: 60 * 60 * 1000 })) {
+      return Response.json(
+        { error: 'Too many requests, try again later' },
+        { status: 429 }
+      );
+    }
+
     const { prompt } = await request.json();
+    if (!prompt || typeof prompt !== 'string' || prompt.length > 500) {
+      return Response.json({ error: 'Invalid prompt' }, { status: 400 });
+    }
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5',
       max_tokens: 1024,
+      output_config: { format: { type: 'json_schema', schema: sessionSchema } },
       messages: [
         {
           role: 'user',
           content: `Generate a training session for: "${prompt}"
-
-You MUST respond with ONLY valid JSON. No markdown, no backticks, no explanation.
-
-Format:
-{"title":"Short title","description":"• Bullet 1\\n• Bullet 2\\n• Bullet 3","distance":"5km","intensity":"easy"}
-
-Rules:
-- title: max 6 words
-- description: bullet points with • symbol, separated by \\n. Number of bullets depends on session complexity (2-3 for simple runs, more for interval workouts)
-- distance: number + unit like "5km", "10km" or empty string ""
-- intensity: must be exactly "easy", "moderate", or "hard"
 
 Examples:
 
@@ -38,30 +62,20 @@ Simple run:
 Track workout:
 {"title":"Track Speed Session","description":"• Warm-up: 1.5km easy + drills\\n• 4x 400m at 5k pace, 90sec rest\\n• 3x 800m at 10k pace, 2min rest\\n• 2x 200m sprint\\n• Cool-down: 1km easy","distance":"8km","intensity":"hard"}
 
-Use London locations (Battersea, Clapham, Richmond, Wimbledon). Keep each bullet under 20 words. Be concise.`
-        }
-      ]
+Use London locations (Battersea, Clapham, Richmond, Wimbledon). Be concise.`,
+        },
+      ],
     });
 
-    const responseText = message.content[0].text;
-    
-    // Nettoie le JSON si Claude l'entoure de backticks markdown
-    let cleanedText = responseText.trim();
-    if (cleanedText.startsWith('```json')) {
-      cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/```\n?/g, '');
-    }
-    
-    const sessionData = JSON.parse(cleanedText);
+    const sessionData = JSON.parse(message.content[0].text);
 
     return Response.json(sessionData);
   } catch (error) {
     console.error('Error generating session:', error);
     console.error('Error details:', error.message);
-    return Response.json({ 
+    return Response.json({
       error: 'Failed to generate session',
-      details: error.message 
+      details: error.message
     }, { status: 500 });
   }
 }

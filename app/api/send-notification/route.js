@@ -1,112 +1,43 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
+import { verifyFirebaseToken, rateLimit } from '@/lib/serverAuth';
+import { buildEmail, EMAIL_FROM } from '@/lib/emailTemplates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(request) {
   try {
-    const { type, to, data } = await request.json();
-    
-    console.log('📬 Email API called:', { type, to });
-    
-    let subject, html;
-    const baseUrl = 'https://www.getgruppetto.com';
-    
-    switch(type) {
-      case 'session_joined_confirmation':
-        subject = `You joined: ${data.sessionTitle}`;
-        html = `
-          <h2>You're all set!</h2>
-          <p>You successfully joined this training session:</p>
-          <h3>${data.sessionTitle}</h3>
-          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
-          <p><strong>Location:</strong> ${data.location}</p>
-          <p><strong>Pace:</strong> ${data.pace || 'Not specified'}</p>
-          <p><strong>Total participants:</strong> ${data.participantCount}</p>
-          <p>We'll send you a reminder the day before. See you there! 💪</p>
-          <br/>
-          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session Details</a>
-        `;
-        break;
-        
-      case 'session_joined':
-        subject = `Someone joined your session: ${data.sessionTitle}`;
-        html = `
-          <h2>Great news!</h2>
-          <p><strong>${data.participantName}</strong> just joined your training session:</p>
-          <h3>${data.sessionTitle}</h3>
-          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
-          <p><strong>Location:</strong> ${data.location}</p>
-          <p>Total participants: ${data.participantCount}</p>
-          <br/>
-          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
-        `;
-        break;
-        
-      case 'session_created':
-        subject = `Session created: ${data.sessionTitle}`;
-        html = `
-          <h2>Your session is live!</h2>
-          <h3>${data.sessionTitle}</h3>
-          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
-          <p><strong>Location:</strong> ${data.location}</p>
-          <p>Your session is now visible to all Gruppetto members.</p>
-          <br/>
-          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
-        `;
-        break;
-        
-      case 'session_reminder':
-        subject = `Reminder: ${data.sessionTitle} tomorrow`;
-        html = `
-          <h2>Don't forget!</h2>
-          <p>Your training session is tomorrow:</p>
-          <h3>${data.sessionTitle}</h3>
-          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
-          <p><strong>Location:</strong> ${data.location}</p>
-          <p><strong>Participants:</strong> ${data.participantCount}</p>
-          <p>See you there! 💪</p>
-          <br/>
-          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session</a>
-        `;
-        break;
-
-      case 'join_request':
-        subject = `Join Request: ${data.sessionTitle}`;
-        html = `
-          <h2>🔔 New Join Request</h2>
-          <p><strong>${data.requesterName}</strong> wants to join your private session:</p>
-          <h3>${data.sessionTitle}</h3>
-          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
-          <p>Go to your session to approve or reject this request.</p>
-          <br/>
-          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #a855f7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Requests</a>
-        `;
-        break;
-
-      case 'join_request_approved':
-        subject = `Request Approved: ${data.sessionTitle}`;
-        html = `
-          <h2>🎉 Your request was approved!</h2>
-          <p>You've been accepted to join this training session:</p>
-          <h3>${data.sessionTitle}</h3>
-          <p><strong>Date:</strong> ${data.date} at ${data.time}</p>
-          <p><strong>Location:</strong> ${data.location}</p>
-          <p>We'll send you a reminder the day before. See you there! 💪</p>
-          <br/>
-          <a href="${baseUrl}/session/${data.sessionId}" style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">View Session Details</a>
-        `;
-        break;
-        
-      default:
-        return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
+    const user = await verifyFirebaseToken(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+    if (!rateLimit(`notify:${user.uid}`, { limit: 60, windowMs: 60 * 60 * 1000 })) {
+      return NextResponse.json(
+        { error: 'Too many requests, try again later' },
+        { status: 429 }
+      );
+    }
+
+    const { type, to, data } = await request.json();
+
+    if (!to || typeof to !== 'string' || !EMAIL_REGEX.test(to)) {
+      return NextResponse.json({ error: 'Invalid recipient' }, { status: 400 });
+    }
+
+    console.log('📬 Email API called:', { type, to });
+
+    const email = buildEmail(type, data);
+    if (!email) {
+      return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
+    }
+
     const { data: emailData, error } = await resend.emails.send({
-      from: 'Gruppetto <onboarding@resend.dev>',
+      from: EMAIL_FROM,
       to: [to],
-      subject: subject,
-      html: html,
+      subject: email.subject,
+      html: email.html,
     });
 
     if (error) {
