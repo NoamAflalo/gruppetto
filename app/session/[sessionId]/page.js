@@ -376,40 +376,8 @@ export default function SessionDetail() {
           }
         }
 
-        // 3. Send email to ALL other participants
-        const otherParticipants = updatedSession.participants?.filter(id => 
-          id !== user.uid && id !== updatedSession.host_user_id
-        ) || [];
-        
-        if (otherParticipants.length > 0) {
-          for (const participantId of otherParticipants) {
-            const participantProfile = profiles[participantId];
-            
-            if (participantProfile?.email) {
-              try {
-                await authedFetch('/api/send-notification', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    type: 'session_joined',
-                    to: participantProfile.email,
-                    data: {
-                      sessionId: sessionId,
-                      sessionTitle: updatedSession.title,
-                      participantName: currentProfile.displayName || user.email,
-                      date: updatedSession.date,
-                      time: updatedSession.time,
-                      location: updatedSession.location,
-                      participantCount: updatedSession.participants?.length || 0,
-                    },
-                  }),
-                });
-              } catch (emailError) {
-                console.error('Participant notification email error:', emailError);
-              }
-            }
-          }
-        }
+        // Note: we deliberately don't email every existing participant on each
+        // join — it doesn't scale (N emails per join) and reads as spam.
       }
     } catch (error) {
       console.error('Error joining/leaving session:', error);

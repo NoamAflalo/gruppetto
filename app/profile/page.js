@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getCountFromServer } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -128,22 +128,14 @@ export default function Profile() {
       if (!user) return;
 
       try {
-        // Get all sessions
+        // Server-side aggregate counts — no document downloads
         const sessionsRef = collection(db, 'sessions');
-        const sessionsSnapshot = await getDocs(sessionsRef);
-
-        let joined = 0;
-        let hosted = 0;
-
-        sessionsSnapshot.docs.forEach(docSnap => {
-          const session = docSnap.data();
-          if (session.host_user_id === user.uid) {
-            hosted++;
-          }
-          if (session.participants?.includes(user.uid)) {
-            joined++;
-          }
-        });
+        const [joinedSnap, hostedSnap] = await Promise.all([
+          getCountFromServer(query(sessionsRef, where('participants', 'array-contains', user.uid))),
+          getCountFromServer(query(sessionsRef, where('host_user_id', '==', user.uid))),
+        ]);
+        const joined = joinedSnap.data().count;
+        const hosted = hostedSnap.data().count;
 
         // Get member since date
         const userDoc = await getDoc(doc(db, 'profiles', user.uid));
@@ -204,10 +196,12 @@ export default function Profile() {
     e.preventDefault();
     
     try {
+      // Strip any legacy email field: profiles are readable by all signed-in
+      // users; emails live in Firebase Auth only.
+      const { email: _legacyEmail, ...profileData } = formData;
       await setDoc(doc(db, 'profiles', user.uid), {
-        ...formData,
+        ...profileData,
         userId: user.uid,
-        email: user.email,
         updatedAt: new Date(),
       });
       

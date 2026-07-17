@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc, where, getDocs, limit } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
@@ -98,7 +98,14 @@ export default function Sessions() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(collection(db, 'sessions'), orderBy('created_at', 'desc'));
+    // Only upcoming sessions, capped — never download the whole history
+    const todayStr = new Date().toISOString().split('T')[0];
+    const q = query(
+      collection(db, 'sessions'),
+      where('date', '>=', todayStr),
+      orderBy('date'),
+      limit(150)
+    );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const sessionsData = [];

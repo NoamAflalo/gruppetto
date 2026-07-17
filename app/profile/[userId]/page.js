@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getCountFromServer } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../components/navigation';
@@ -58,21 +58,14 @@ export default function UserProfile() {
       if (!userId) return;
 
       try {
+        // Server-side aggregate counts — no document downloads
         const sessionsRef = collection(db, 'sessions');
-        const sessionsSnapshot = await getDocs(sessionsRef);
-
-        let joined = 0;
-        let hosted = 0;
-
-        sessionsSnapshot.docs.forEach(docSnap => {
-          const session = docSnap.data();
-          if (session.host_user_id === userId) {
-            hosted++;
-          }
-          if (session.participants?.includes(userId)) {
-            joined++;
-          }
-        });
+        const [joinedSnap, hostedSnap] = await Promise.all([
+          getCountFromServer(query(sessionsRef, where('participants', 'array-contains', userId))),
+          getCountFromServer(query(sessionsRef, where('host_user_id', '==', userId))),
+        ]);
+        const joined = joinedSnap.data().count;
+        const hosted = hostedSnap.data().count;
 
         // Get member since date
         const userDoc = await getDoc(doc(db, 'profiles', userId));

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, getDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDoc, doc, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
@@ -54,45 +54,37 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
 
+    // Hosts are always in participants, so one targeted query covers both
     const q = query(
       collection(db, 'sessions'),
-      orderBy('created_at', 'desc')
+      where('participants', 'array-contains', user.uid)
     );
-    
+
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const sessionsData = [];
       const userIds = new Set();
-      
+
       snapshot.forEach((doc) => {
         const session = { id: doc.id, ...doc.data() };
-        
-        // Filter: only sessions where user is participant OR host
-        if (
-          session.participants?.includes(user.uid) || 
-          session.host_user_id === user.uid
-        ) {
-          sessionsData.push(session);
-          
-          if (session.host_user_id) userIds.add(session.host_user_id);
-          if (session.participants) {
-            session.participants.forEach(id => userIds.add(id));
-          }
+        sessionsData.push(session);
+
+        if (session.host_user_id) userIds.add(session.host_user_id);
+        if (session.participants) {
+          session.participants.forEach(id => userIds.add(id));
         }
       });
-      
+
       setSessions(sessionsData);
-      
-      // Fetch profiles
-      const profilesData = {};
-      for (const userId of userIds) {
-        if (!profiles[userId]) {
-          const profileDoc = await getDoc(doc(db, 'profiles', userId));
-          if (profileDoc.exists()) {
-            profilesData[userId] = profileDoc.data();
-          }
-        }
-      }
-      setProfiles(prev => ({ ...prev, ...profilesData }));
+
+      // Fetch unknown profiles in parallel
+      const idsToFetch = [...userIds].filter((id) => !profiles[id]);
+      const fetched = await Promise.all(
+        idsToFetch.map(async (id) => {
+          const profileDoc = await getDoc(doc(db, 'profiles', id));
+          return profileDoc.exists() ? [id, profileDoc.data()] : null;
+        })
+      );
+      setProfiles(prev => ({ ...prev, ...Object.fromEntries(fetched.filter(Boolean)) }));
     });
 
     return () => unsubscribe();

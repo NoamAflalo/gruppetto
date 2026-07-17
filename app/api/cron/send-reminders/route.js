@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { getAdminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb, getAdminAuth } from '@/lib/firebaseAdmin';
 import { buildEmail, EMAIL_FROM } from '@/lib/emailTemplates';
 
 // Daily Vercel cron (see vercel.json) that emails every participant of
@@ -49,10 +49,12 @@ export async function GET(request) {
       const recipients = new Set();
       if (session.host_email) recipients.add(session.host_email);
 
-      for (const uid of participantIds) {
-        const profileSnap = await db.collection('profiles').doc(uid).get();
-        const email = profileSnap.exists ? profileSnap.data().email : null;
-        if (email) recipients.add(email);
+      // Participant emails come from Firebase Auth (batched, max 100/call)
+      if (participantIds.length > 0) {
+        const { users } = await getAdminAuth().getUsers(
+          participantIds.slice(0, 100).map((uid) => ({ uid }))
+        );
+        users.forEach((u) => u.email && recipients.add(u.email));
       }
 
       const email = buildEmail('session_reminder', {

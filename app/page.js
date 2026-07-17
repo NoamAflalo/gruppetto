@@ -56,8 +56,9 @@ export default function Home() {
 
       // Si le profil n'existe pas, le créer
       if (!profileSnap.exists()) {
+        // No email in the profile doc: profiles are readable by all signed-in
+        // users, emails live in Firebase Auth only.
         await setDoc(profileRef, {
-          email: user.email,
           displayName: user.displayName || user.email?.split('@')[0] || 'User',
           profileImage: user.photoURL || null,
           createdAt: new Date().toISOString(),
