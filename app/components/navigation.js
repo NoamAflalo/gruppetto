@@ -116,6 +116,7 @@ export default function Navigation({ user }) {
     ) : null;
 
   return (
+    <>
     <nav className="sticky top-0 z-50 bg-ground/90 backdrop-blur border-b border-line">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
@@ -228,8 +229,10 @@ export default function Navigation({ user }) {
           </button>
         </div>
       </div>
+    </nav>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile menu overlay — outside <nav>: its backdrop-blur would trap
+          position:fixed descendants inside the 64px bar */}
       {showMobileMenu && (
         <div
           className="md:hidden fixed inset-x-0 top-16 bottom-0 bg-ground/95 backdrop-blur z-40 p-5 overflow-y-auto"
@@ -241,7 +244,7 @@ export default function Navigation({ user }) {
                 setShowMobileMenu(false);
                 router.push('/create');
               }}
-              className="w-full p-4 bg-brand text-ink rounded-xl text-base font-bold text-left"
+              className="w-full p-4 bg-brand text-white rounded-xl text-base font-bold text-left"
             >
               + Create Session
             </button>
@@ -287,6 +290,6 @@ export default function Navigation({ user }) {
           </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }
