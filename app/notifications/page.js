@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
+import { Bell, User } from 'lucide-react';
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export default function Notifications() {
@@ -28,6 +29,9 @@ export default function Notifications() {
   useEffect(() => {
     if (!user) return;
 
+    const unsubs = [];
+    let cancelled = false;
+
     const fetchAllNotifications = async () => {
       try {
         const sessionsRef = collection(db, 'sessions');
@@ -41,7 +45,7 @@ export default function Notifications() {
           const sessionData = sessionDoc.data();
           
           const commentsRef = collection(db, 'sessions', sessionDoc.id, 'comments');
-          const unsubscribe = onSnapshot(commentsRef, async (commentsSnapshot) => {
+          const unsub = onSnapshot(commentsRef, async (commentsSnapshot) => {
             const newNotifications = [];
 
             for (const commentDoc of commentsSnapshot.docs) {
@@ -76,6 +80,7 @@ export default function Notifications() {
               }
             }
 
+            if (cancelled) return;
             setNotifications(prev => {
               const filtered = prev.filter(n => n.sessionId !== sessionDoc.id);
               return [...filtered, ...newNotifications].sort((a, b) => {
@@ -84,6 +89,7 @@ export default function Notifications() {
               });
             });
           });
+          unsubs.push(unsub);
         }
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -91,46 +97,37 @@ export default function Notifications() {
     };
 
     fetchAllNotifications();
+    return () => {
+      cancelled = true;
+      unsubs.forEach((u) => u());
+    };
   }, [user]);
-// Mark notifications as read when viewed
-useEffect(() => {
-  if (!user || notifications.length === 0) return;
+  // Mark visible unread notifications as read immediately. Guarded by a ref
+  // so each comment is marked once; in-flight writes finish even if the user
+  // navigates away (the old 1s timer was cancelled on every re-render, so
+  // quick visits never cleared the badge).
+  const markedRef = useRef(new Set());
+  useEffect(() => {
+    if (!user) return;
+    const unread = notifications.filter(
+      (n) => !n.isRead && !markedRef.current.has(n.id)
+    );
+    if (unread.length === 0) return;
+    unread.forEach((n) => markedRef.current.add(n.id));
 
-  const markAsRead = async () => {
-    try {
-      // Get all unique session IDs
-      const sessionIds = [...new Set(notifications.map(n => n.sessionId))];
-
-      for (const sessionId of sessionIds) {
-        const commentsRef = collection(db, 'sessions', sessionId, 'comments');
-        const commentsSnapshot = await getDocs(commentsRef);
-
-        for (const commentDoc of commentsSnapshot.docs) {
-          const comment = commentDoc.data();
-          
-          // Skip if already read by user or is user's own comment
-          if (comment.userId === user.uid) continue;
-          if (comment.readBy && comment.readBy.includes(user.uid)) continue;
-
-          // Mark as read
-          const commentRef = doc(db, 'sessions', sessionId, 'comments', commentDoc.id);
-          await updateDoc(commentRef, {
-            readBy: arrayUnion(user.uid)
+    (async () => {
+      for (const n of unread) {
+        try {
+          await updateDoc(doc(db, 'sessions', n.sessionId, 'comments', n.id), {
+            readBy: arrayUnion(user.uid),
           });
+        } catch (error) {
+          console.error('Error marking notification as read:', error);
+          markedRef.current.delete(n.id);
         }
       }
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-    }
-  };
-
-  // Wait 1 second before marking as read (so user sees the notifications first)
-  const timer = setTimeout(() => {
-    markAsRead();
-  }, 1000);
-
-  return () => clearTimeout(timer);
-}, [user, notifications]);
+    })();
+  }, [user, notifications]);
 
   
 
@@ -162,13 +159,13 @@ useEffect(() => {
       
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2">Notifications</h1>
+          <h1 className="font-display uppercase text-4xl md:text-5xl text-ink mb-1.5">Notifications</h1>
           <p className="text-muted text-base md:text-lg">Stay updated with your sessions</p>
         </div>
 
         {notifications.length === 0 ? (
           <div className="bg-card rounded-xl border border-line p-8 md:p-12 text-center">
-            <div className="text-5xl md:text-6xl mb-4">🔔</div>
+            <Bell size={44} className="text-muted mx-auto mb-4" />
             <p className="text-muted text-base md:text-lg">No notifications</p>
             <p className="text-muted text-sm mt-2">Messages from the last 2 weeks will appear here</p>
           </div>
@@ -190,8 +187,8 @@ useEffect(() => {
                       className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-brand flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-card2 flex items-center justify-center text-base md:text-lg border-2 border-brand flex-shrink-0">
-                      👤
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-card2 flex items-center justify-center border-2 border-brand flex-shrink-0">
+                      <User size={18} className="text-muted" />
                     </div>
                   )}
                   
