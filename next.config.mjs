@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Serve Firebase's auth helper from our own domain so the Google sign-in
@@ -18,4 +20,12 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with Sentry. Source-map upload only runs when SENTRY_AUTH_TOKEN is set,
+// so builds succeed without it (errors still report, just less readable).
+export default withSentryConfig(nextConfig, {
+  org: 'grupetto',
+  project: 'javascript-nextjs',
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+});

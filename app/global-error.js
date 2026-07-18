@@ -1,7 +1,12 @@
 'use client';
+import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 // Last-resort error page (replaces the root layout when it crashes).
 export default function GlobalError({ error, reset }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
   console.error('Global error:', error);
 
   return (
