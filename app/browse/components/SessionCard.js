@@ -20,7 +20,7 @@ function SessionBadges({ session, sizeClass = 'px-3 py-1 text-xs' }) {
           Girls only
         </span>
       )}
-      {session.recurringSessionId && (
+      {session.recurringGroupId && (
         <span className={`${sizeClass} rounded-full font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1`}>
           <Repeat size={11} /> Weekly
         </span>

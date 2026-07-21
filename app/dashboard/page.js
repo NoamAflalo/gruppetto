@@ -377,7 +377,7 @@ export default function Dashboard() {
                                 <Lock size={11} /> Private
                               </span>
                             )}
-                            {session.recurringSessionId && (
+                            {session.recurringGroupId && (
                               <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1">
                                 <Repeat size={11} /> Weekly
                               </span>

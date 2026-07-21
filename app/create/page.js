@@ -11,7 +11,7 @@ import Toast from '../components/Toast';
 import DatePickerCalendar from '../components/DatePickerCalendar';
 import ActivityIcon from '../components/ActivityIcon';
 import { Sparkles, Lock, Repeat } from 'lucide-react';
-import { getWeekdayName } from '@/lib/sessionUi';
+import { getWeekdayName, addWeeks } from '@/lib/sessionUi';
 
 export default function CreateSession() {
   const [user, setUser] = useState(null);
@@ -37,6 +37,7 @@ export default function CreateSession() {
     isPrivate: false,
     girlsOnly: false,
     isRecurring: false,
+    recurringWeeks: 4,
   });
   const router = useRouter();
 
@@ -211,31 +212,30 @@ export default function CreateSession() {
         sessionData.joinRequests = [];
       }
 
+      // Recurring: create N independent sessions up front (one every 7 days).
+      // Each is a completely normal session — no shared template, nothing
+      // ongoing. They're tagged with recurringGroupId purely so the UI can
+      // show a "repeats every X" badge; cancelling one never affects others.
+      let docRef;
       if (formData.isRecurring) {
-        const recurringRef = await addDoc(collection(db, 'recurringSessions'), {
-          title: formData.title,
-          description: formData.description,
-          activity_type: formData.activity_type,
-          weekday: getWeekdayName(formData.date).toLowerCase(),
-          time: formData.time,
-          location: locationDisplay,
-          meetingPoint: formData.meetingPoint,
-          destination: formData.destination || '',
-          intensity: formData.intensity,
-          distance: formData.distance,
-          max_participants: formData.max_participants,
-          isPrivate: formData.isPrivate,
-          girlsOnly: formData.girlsOnly,
-          host_user_id: user.uid,
-          host_email: user.email,
-          ...(selectedClub ? { club_id: selectedClub, is_club_session: true } : {}),
-          active: true,
-          created_at: serverTimestamp(),
-        });
-        sessionData.recurringSessionId = recurringRef.id;
-      }
+        const weeks = Math.min(26, Math.max(2, parseInt(formData.recurringWeeks, 10) || 4));
+        const groupId = crypto.randomUUID();
 
-      const docRef = await addDoc(collection(db, 'sessions'), sessionData);
+        const refs = await Promise.all(
+          Array.from({ length: weeks }, (_, i) =>
+            addDoc(collection(db, 'sessions'), {
+              ...sessionData,
+              date: i === 0 ? formData.date : addWeeks(formData.date, i),
+              recurringGroupId: groupId,
+              recurringWeekIndex: i + 1,
+              recurringTotalWeeks: weeks,
+            })
+          )
+        );
+        docRef = refs[0];
+      } else {
+        docRef = await addDoc(collection(db, 'sessions'), sessionData);
+      }
 
       try {
         await authedFetch('/api/send-notification', {
@@ -257,7 +257,12 @@ export default function CreateSession() {
         console.error('Email error:', emailError);
       }
       
-      setToast({ message: 'Session created successfully!', type: 'success' });
+      setToast({
+        message: formData.isRecurring
+          ? `${Math.min(26, Math.max(2, parseInt(formData.recurringWeeks, 10) || 4))} sessions created!`
+          : 'Session created successfully!',
+        type: 'success',
+      });
       
       if (selectedClub) {
         setTimeout(() => router.push(`/club/${selectedClub}`), 1500);
@@ -432,9 +437,31 @@ export default function CreateSession() {
                 </label>
                 <p className="text-sm text-muted mt-1">
                   {formData.date
-                    ? `We'll automatically create this session every ${getWeekdayName(formData.date)} for the next few weeks.`
+                    ? `This creates one session every ${getWeekdayName(formData.date)}, on top of today's.`
                     : 'Pick a date above to see which day it will repeat on.'}
                 </p>
+
+                {formData.isRecurring && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-semibold text-soft mb-2">Repeat for how many weeks?</label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="26"
+                      value={formData.recurringWeeks}
+                      onChange={(e) => setFormData({ ...formData, recurringWeeks: e.target.value })}
+                      className="w-full sm:w-32 p-3 bg-card border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-base"
+                    />
+                    {formData.date && (
+                      <p className="text-xs text-brand-soft mt-2">
+                        {(() => {
+                          const weeks = Math.min(26, Math.max(2, parseInt(formData.recurringWeeks, 10) || 4));
+                          return `${weeks} sessions total, every ${getWeekdayName(formData.date)}: ${formData.date} → ${addWeeks(formData.date, weeks - 1)}.`;
+                        })()}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -239,7 +239,7 @@ export default function CalendarView({
                             Girls only
                           </span>
                         )}
-                        {session.recurringSessionId && (
+                        {session.recurringGroupId && (
                           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1">
                             <Repeat size={10} /> Weekly
                           </span>

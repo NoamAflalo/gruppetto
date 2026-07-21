@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { authedFetch } from '@/lib/api';
-import { doc, getDoc, collection, onSnapshot, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, onSnapshot, addDoc, serverTimestamp, updateDoc, deleteDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../components/navigation';
@@ -10,7 +10,7 @@ import SessionMap from '../../components/map';
 import Toast from '../../components/Toast';
 import ActivityIcon from '../../components/ActivityIcon';
 import { getIntensityColor, getWeekdayName } from '@/lib/sessionUi';
-import { ArrowLeft, Calendar, Clock, MapPin, Ruler, Users, User, Lock, Hourglass, Share2, Bell, Check, X, MessagesSquare, Repeat } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Ruler, Users, User, Lock, Hourglass, Share2, Bell, Check, X, MessagesSquare, Repeat, Ban } from 'lucide-react';
 
 export default function SessionDetail() {
   const [user, setUser] = useState(null);
@@ -385,14 +385,22 @@ export default function SessionDetail() {
     }
   };
 
-  const handleStopRecurring = async () => {
-    if (!session?.recurringSessionId) return;
+  // Cancels this one session only — works the same for a standalone session
+  // or a single occurrence of a recurring series; siblings are untouched.
+  const handleCancelSession = async () => {
+    if (!isHost) return;
+    if (!confirm('Cancel this session? This cannot be undone.')) return;
+
     try {
-      await updateDoc(doc(db, 'recurringSessions', session.recurringSessionId), { active: false });
-      setToast({ message: 'This session will no longer repeat. Already-scheduled sessions are unaffected.', type: 'success' });
+      const commentsSnapshot = await getDocs(collection(db, 'sessions', sessionId, 'comments'));
+      for (const commentDoc of commentsSnapshot.docs) {
+        await deleteDoc(commentDoc.ref);
+      }
+      await deleteDoc(doc(db, 'sessions', sessionId));
+      router.push('/browse');
     } catch (error) {
-      console.error('Error stopping recurring session:', error);
-      setToast({ message: 'Error updating the recurring series', type: 'error' });
+      console.error('Error cancelling session:', error);
+      setToast({ message: 'Error cancelling session', type: 'error' });
     }
   };
 
@@ -484,21 +492,13 @@ Join here: ${window.location.href}`;
                     Girls only
                   </span>
                 )}
-                {session.recurringSessionId && (
+                {session.recurringGroupId && (
                   <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1">
                     <Repeat size={11} /> Repeats every {getWeekdayName(session.date)}
+                    {session.recurringTotalWeeks && ` · Week ${session.recurringWeekIndex}/${session.recurringTotalWeeks}`}
                   </span>
                 )}
               </div>
-
-              {session.recurringSessionId && isHost && (
-                <button
-                  onClick={handleStopRecurring}
-                  className="text-xs text-muted hover:text-red-400 transition underline mb-4 -mt-2 inline-block"
-                >
-                  Stop repeating this session
-                </button>
-              )}
 
               {session.girlsOnly && (
                 <div className="bg-pink-500/5 border border-pink-500/25 rounded-xl p-4 mb-6">
@@ -609,6 +609,17 @@ Join here: ${window.location.href}`;
               >
                 <Share2 size={17} /> Share on WhatsApp
               </button>
+
+              {/* Cancel Button (host only) — cancels this occurrence alone,
+                  never the rest of a recurring series */}
+              {isHost && (
+                <button
+                  onClick={handleCancelSession}
+                  className="w-full md:min-w-[200px] px-6 md:px-8 py-3 md:py-4 bg-card2 text-muted border border-line rounded-xl font-semibold text-sm hover:border-red-500/50 hover:text-red-400 transition flex items-center justify-center gap-2"
+                >
+                  <Ban size={15} /> Cancel Session
+                </button>
+              )}
             </div>
           </div>
         </div>
