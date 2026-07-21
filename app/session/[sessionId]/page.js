@@ -9,8 +9,8 @@ import Navigation from '../../components/navigation';
 import SessionMap from '../../components/map';
 import Toast from '../../components/Toast';
 import ActivityIcon from '../../components/ActivityIcon';
-import { getIntensityColor } from '@/lib/sessionUi';
-import { ArrowLeft, Calendar, Clock, MapPin, Ruler, Users, User, Lock, Hourglass, Share2, Bell, Check, X, MessagesSquare } from 'lucide-react';
+import { getIntensityColor, getWeekdayName } from '@/lib/sessionUi';
+import { ArrowLeft, Calendar, Clock, MapPin, Ruler, Users, User, Lock, Hourglass, Share2, Bell, Check, X, MessagesSquare, Repeat } from 'lucide-react';
 
 export default function SessionDetail() {
   const [user, setUser] = useState(null);
@@ -385,6 +385,17 @@ export default function SessionDetail() {
     }
   };
 
+  const handleStopRecurring = async () => {
+    if (!session?.recurringSessionId) return;
+    try {
+      await updateDoc(doc(db, 'recurringSessions', session.recurringSessionId), { active: false });
+      setToast({ message: 'This session will no longer repeat. Already-scheduled sessions are unaffected.', type: 'success' });
+    } catch (error) {
+      console.error('Error stopping recurring session:', error);
+      setToast({ message: 'Error updating the recurring series', type: 'error' });
+    }
+  };
+
   const handleShareWhatsApp = () => {
     const message = `Join my ${session.activity_type} session!
 
@@ -473,7 +484,21 @@ Join here: ${window.location.href}`;
                     Girls only
                   </span>
                 )}
+                {session.recurringSessionId && (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1">
+                    <Repeat size={11} /> Repeats every {getWeekdayName(session.date)}
+                  </span>
+                )}
               </div>
+
+              {session.recurringSessionId && isHost && (
+                <button
+                  onClick={handleStopRecurring}
+                  className="text-xs text-muted hover:text-red-400 transition underline mb-4 -mt-2 inline-block"
+                >
+                  Stop repeating this session
+                </button>
+              )}
 
               {session.girlsOnly && (
                 <div className="bg-pink-500/5 border border-pink-500/25 rounded-xl p-4 mb-6">

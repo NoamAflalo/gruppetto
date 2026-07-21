@@ -23,6 +23,22 @@ service cloud.firestore {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
 
+    // Recurring session templates: host-only in every direction. Nobody
+    // else needs to read these — the "repeats every X" badge is derived
+    // client-side from each generated session's own date, and only the
+    // host manages the series (start/stop). No hard delete: stopping a
+    // series sets active=false so history and any already-generated future
+    // occurrences stay intact; only the daily cron (admin SDK, bypasses
+    // these rules) reads active templates to generate new occurrences.
+    match /recurringSessions/{recurringId} {
+      allow read: if signedIn() && resource.data.host_user_id == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.host_user_id == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.host_user_id == request.auth.uid
+        && request.resource.data.host_user_id == resource.data.host_user_id;
+      allow delete: if false;
+    }
+
     match /sessions/{sessionId} {
 
       function changedOnly(keys) {

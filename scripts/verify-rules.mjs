@@ -48,7 +48,8 @@ const s1 = await addDoc(collection(db, 'sessions'), { ...base, title: 'Public S1
 const s2 = await addDoc(collection(db, 'sessions'), { ...base, title: 'Girls S2', isPrivate: false, girlsOnly: true, participants: [uidA] });
 const s3 = await addDoc(collection(db, 'sessions'), { ...base, title: 'Private S3', isPrivate: true, girlsOnly: false, participants: [uidA], joinRequests: [] });
 const c1 = await addDoc(collection(db, 'sessions', s1.id, 'comments'), { userId: uidA, message: 'hello', timestamp: new Date(), readBy: [uidA] });
-console.log('setup done (A created 3 sessions + 1 comment)');
+const r1 = await addDoc(collection(db, 'recurringSessions'), { ...base, title: 'Weekly R1', weekday: 'tuesday', isPrivate: false, girlsOnly: false, active: true });
+console.log('setup done (A created 3 sessions + 1 comment + 1 recurring template)');
 
 // --- switch to user B (male) ---
 const credB = await createUserWithEmailAndPassword(auth, emailB, passB);
@@ -84,6 +85,18 @@ await expect('leave session', true, () =>
   updateDoc(doc(db, 'sessions', s1.id), { participants: arrayRemove(uidB) }));
 const profA = await getDoc(doc(db, 'profiles', uidA));
 await expect('profile of A contains no email field', profA.data().email === undefined, async () => {});
+await expect('read someone else recurring template', false, () => getDoc(doc(db, 'recurringSessions', r1.id)).then((snap) => {
+  if (!snap.exists()) { const e = new Error('denied'); e.code = 'permission-denied'; throw e; }
+}));
+await expect('update someone else recurring template', false, () =>
+  updateDoc(doc(db, 'recurringSessions', r1.id), { active: false }));
+await expect('create recurring template impersonating another host', false, () =>
+  addDoc(collection(db, 'recurringSessions'), { ...base, title: 'Spoofed', weekday: 'monday', active: true, host_user_id: uidA }));
+const r2 = await (async () => {
+  let created;
+  await expect('create own recurring template', true, () => addDoc(collection(db, 'recurringSessions'), { ...base, title: 'Weekly R2', weekday: 'wednesday', host_user_id: uidB, host_email: emailB, active: true }).then((ref) => { created = ref; }));
+  return created;
+})();
 
 // --- back to A (host powers + girls-only join) ---
 await signInWithEmailAndPassword(auth, emailA, passA);
@@ -92,14 +105,33 @@ await expect('host edits own session title', true, () =>
   updateDoc(doc(db, 'sessions', s1.id), { title: 'Public S1 edited' }));
 await expect('host approves join request', true, () =>
   updateDoc(doc(db, 'sessions', s3.id), { joinRequests: [], participants: arrayUnion(uidB) }));
+await expect('read own recurring template', true, () => getDoc(doc(db, 'recurringSessions', r1.id)));
+await expect('reassign recurring template ownership', false, () =>
+  updateDoc(doc(db, 'recurringSessions', r1.id), { host_user_id: uidB }));
+await expect('stop own recurring template (active:false)', true, () =>
+  updateDoc(doc(db, 'recurringSessions', r1.id), { active: false }));
+await expect('hard-delete recurring template via client (never allowed)', false, () =>
+  deleteDoc(doc(db, 'recurringSessions', r1.id)));
 
-// cleanup
+// cleanup (client-allowed writes)
 for (const s of [s1, s2, s3]) await deleteDoc(doc(db, 'sessions', s.id));
 await deleteDoc(doc(db, 'profiles', uidA));
 await deleteUser(auth.currentUser);
 await signInWithEmailAndPassword(auth, emailB, passB);
 await deleteDoc(doc(db, 'profiles', uidB));
 await deleteUser(auth.currentUser);
+
+// recurringSessions has no client delete by design (see firestore.rules) —
+// clean up the two test templates via the admin SDK instead.
+const { initializeApp: initAdmin, cert, getApps } = await import('firebase-admin/app');
+const { getFirestore: getAdminFirestore } = await import('firebase-admin/firestore');
+const saRaw = env.match(/^FIREBASE_SERVICE_ACCOUNT_KEY='(.*)'$/m)?.[1];
+if (saRaw && !getApps().length) initAdmin({ credential: cert(JSON.parse(saRaw)) });
+if (saRaw) {
+  const adminDb = getAdminFirestore();
+  await adminDb.collection('recurringSessions').doc(r1.id).delete();
+  await adminDb.collection('recurringSessions').doc(r2.id).delete();
+}
 console.log('cleanup done');
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);

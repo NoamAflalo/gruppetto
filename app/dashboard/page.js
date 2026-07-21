@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Navigation from '../components/navigation';
 import ActivityIcon from '../components/ActivityIcon';
 import { getIntensityColor } from '@/lib/sessionUi';
-import { Users, Mic, Landmark, CalendarDays, History, LayoutGrid, Calendar, Clock, MapPin, Ruler, User, Lock, BadgeCheck, Star } from 'lucide-react';
+import { Users, Mic, Landmark, CalendarDays, History, LayoutGrid, Calendar, Clock, MapPin, Ruler, User, Lock, BadgeCheck, Star, Repeat } from 'lucide-react';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -375,6 +375,11 @@ export default function Dashboard() {
                             {session.isPrivate && (
                               <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-card2 text-soft border border-line inline-flex items-center gap-1">
                                 <Lock size={11} /> Private
+                              </span>
+                            )}
+                            {session.recurringSessionId && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1">
+                                <Repeat size={11} /> Weekly
                               </span>
                             )}
                           </div>

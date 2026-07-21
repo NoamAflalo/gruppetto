@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, MapPin, Ruler, Users, User, Lock } from 'lucide-react';
-import { getIntensityColor } from '@/lib/sessionUi';
+import { Calendar, Clock, MapPin, Ruler, Users, User, Lock, Repeat } from 'lucide-react';
+import { getIntensityColor, getWeekdayName } from '@/lib/sessionUi';
 import ActivityIcon from '../../components/ActivityIcon';
 
 function SessionBadges({ session, sizeClass = 'px-3 py-1 text-xs' }) {
@@ -18,6 +18,11 @@ function SessionBadges({ session, sizeClass = 'px-3 py-1 text-xs' }) {
       {session.girlsOnly && (
         <span className={`${sizeClass} rounded-full font-semibold uppercase tracking-wide bg-pink-500/10 border border-pink-500/40 text-pink-400`}>
           Girls only
+        </span>
+      )}
+      {session.recurringSessionId && (
+        <span className={`${sizeClass} rounded-full font-semibold uppercase tracking-wide bg-brand/10 border border-brand/30 text-brand-soft inline-flex items-center gap-1`}>
+          <Repeat size={11} /> Weekly
         </span>
       )}
     </>

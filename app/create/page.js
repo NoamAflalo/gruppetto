@@ -10,7 +10,8 @@ import LocationSelect from '../components/LocationSelect';
 import Toast from '../components/Toast';
 import DatePickerCalendar from '../components/DatePickerCalendar';
 import ActivityIcon from '../components/ActivityIcon';
-import { Sparkles, Lock } from 'lucide-react';
+import { Sparkles, Lock, Repeat } from 'lucide-react';
+import { getWeekdayName } from '@/lib/sessionUi';
 
 export default function CreateSession() {
   const [user, setUser] = useState(null);
@@ -35,6 +36,7 @@ export default function CreateSession() {
     max_participants: '',
     isPrivate: false,
     girlsOnly: false,
+    isRecurring: false,
   });
   const router = useRouter();
 
@@ -207,6 +209,30 @@ export default function CreateSession() {
 
       if (formData.isPrivate) {
         sessionData.joinRequests = [];
+      }
+
+      if (formData.isRecurring) {
+        const recurringRef = await addDoc(collection(db, 'recurringSessions'), {
+          title: formData.title,
+          description: formData.description,
+          activity_type: formData.activity_type,
+          weekday: getWeekdayName(formData.date).toLowerCase(),
+          time: formData.time,
+          location: locationDisplay,
+          meetingPoint: formData.meetingPoint,
+          destination: formData.destination || '',
+          intensity: formData.intensity,
+          distance: formData.distance,
+          max_participants: formData.max_participants,
+          isPrivate: formData.isPrivate,
+          girlsOnly: formData.girlsOnly,
+          host_user_id: user.uid,
+          host_email: user.email,
+          ...(selectedClub ? { club_id: selectedClub, is_club_session: true } : {}),
+          active: true,
+          created_at: serverTimestamp(),
+        });
+        sessionData.recurringSessionId = recurringRef.id;
       }
 
       const docRef = await addDoc(collection(db, 'sessions'), sessionData);
@@ -386,6 +412,30 @@ export default function CreateSession() {
                 className="w-full p-3 md:p-4 bg-ground border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-brand text-base [color-scheme:dark] cursor-pointer"
                 required
               />
+            </div>
+          </div>
+
+          {/* Recurring Toggle */}
+          <div className="bg-ground rounded-xl p-4 md:p-6 border border-line">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={formData.isRecurring}
+                onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                className="mt-1 w-5 h-5 rounded border-line text-brand focus:ring-brand focus:ring-offset-card"
+              />
+              <div className="flex-1">
+                <label htmlFor="isRecurring" className="block text-base font-semibold text-ink cursor-pointer">
+                  <Repeat size={15} className="inline -mt-0.5 mr-1.5 text-muted" />
+                  Make this a recurring session
+                </label>
+                <p className="text-sm text-muted mt-1">
+                  {formData.date
+                    ? `We'll automatically create this session every ${getWeekdayName(formData.date)} for the next few weeks.`
+                    : 'Pick a date above to see which day it will repeat on.'}
+                </p>
+              </div>
             </div>
           </div>
 
