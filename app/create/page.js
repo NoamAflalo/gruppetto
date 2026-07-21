@@ -443,8 +443,9 @@ export default function CreateSession() {
 
                 {formData.isRecurring && (
                   <div className="mt-3">
-                    <label className="block text-sm font-semibold text-soft mb-2">Repeat for how many weeks?</label>
+                    <label htmlFor="recurringWeeks" className="block text-sm font-semibold text-soft mb-2">Repeat for how many weeks?</label>
                     <input
+                      id="recurringWeeks"
                       type="number"
                       min="2"
                       max="26"
