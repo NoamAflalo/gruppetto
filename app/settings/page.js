@@ -171,7 +171,7 @@ export default function Settings() {
         {/* Contact for Account Deletion */}
         <div className="bg-card2 rounded-2xl border border-line p-4 md:p-6 text-center">
           <p className="text-sm md:text-base text-soft mb-2">Need to delete your account?</p>
-          <p className="text-xs md:text-sm text-muted">Contact us at noamaflalo@gmail.com</p>
+          <p className="text-xs md:text-sm text-muted">Contact us at hello.gruppetto@gmail.com</p>
         </div>
       </div>
     </div>

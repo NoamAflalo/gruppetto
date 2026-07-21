@@ -113,7 +113,7 @@ export default function Privacy() {
             <h2 className="text-xl font-bold text-ink mb-3">10. Contact Us</h2>
             <p>For privacy questions or concerns:</p>
             <p className="mt-2">
-              Email: <a href="mailto:noamaflalo@gmail.com" className="text-brand hover:underline">noamaflalo@gmail.com</a><br/>
+              Email: <a href="mailto:hello.gruppetto@gmail.com" className="text-brand hover:underline">hello.gruppetto@gmail.com</a><br/>
               Address: London, United Kingdom
             </p>
           </section>
