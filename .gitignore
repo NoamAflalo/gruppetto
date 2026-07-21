@@ -40,3 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 workout-buddy.zip
+e2e-recurring-v2.tmp.mjs
+*.tmp.mjs
