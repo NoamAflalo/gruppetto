@@ -53,11 +53,10 @@ export default function SessionMap({ sessions, onMarkerClick }) {
 
   return (
     <APIProvider apiKey={API_KEY}>
-      <div style={{ height: '500px', width: '100%' }}>
+      <div style={{ height: '100%', width: '100%' }}>
         <Map
           defaultCenter={calculateCenter()}
           defaultZoom={11}
-          mapId="workout-buddy-map"
         >
           {sessionsWithCoords.map((session) => (
             <div key={session.id}>
