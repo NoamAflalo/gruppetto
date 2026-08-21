@@ -16,11 +16,24 @@ const barlowCondensed = Barlow_Condensed({
   variable: '--font-display',
 });
 
+export const viewport = {
+  themeColor: '#0C0B09',
+};
+
 export const metadata = {
+  // Without this, relative OG/Twitter image paths resolve against localhost
+  // and link previews break wherever the site is shared.
+  metadataBase: new URL('https://www.getgruppetto.com'),
   title: 'Gruppetto - Find Training Partners in London',
   description: 'Join running, cycling, and swimming sessions with athletes in London. Connect with local training partners and level up your fitness.',
   keywords: 'running, cycling, swimming, training partners, London, fitness, workout buddy, run club, cycling club',
   authors: [{ name: 'Gruppetto' }],
+  manifest: '/site.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Gruppetto',
+  },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
