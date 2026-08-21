@@ -61,6 +61,7 @@ export default function Privacy() {
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li><strong>Firebase (Google):</strong> Authentication, database, file storage</li>
               <li><strong>Google Analytics:</strong> Usage analytics (anonymized)</li>
+              <li><strong>Vercel Analytics:</strong> Page view analytics (cookieless, no personal data)</li>
               <li><strong>Resend:</strong> Email notifications</li>
               <li><strong>Anthropic:</strong> AI session generation (data not stored)</li>
             </ul>

@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Barlow, Barlow_Condensed } from 'next/font/google';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { Analytics } from '@vercel/analytics/next';
 import Footer from './components/Footer';
 import { Toaster } from 'react-hot-toast';
 
@@ -60,6 +61,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
   return (
     <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
       <body className="antialiased font-sans bg-ground text-ink" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -89,7 +92,10 @@ export default function RootLayout({ children }) {
           {children}
         </div>
         <Footer />
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+        <Analytics />
+        {/* Rendering this without an id emits `gtag/js?id=undefined` and collects
+            nothing, so only mount it once the measurement id is actually set. */}
+        {gaId ? <GoogleAnalytics gaId={gaId} /> : null}
       </body>
     </html>
   );
